@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Quote;
+use App\Models\Note;
+use App\Models\BankingDetail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -25,10 +27,21 @@ class AdminController extends Controller
         try {
             $data = $request->all();
 
+            if (!empty($data['policy_start_date']) && !empty($data['policy_end_date'])) {
+                $data['policy_period'] = date('d/m/Y', strtotime($data['policy_start_date'])) . ' - ' . date('d/m/Y', strtotime($data['policy_end_date']));
+            } else {
+                $data['policy_period'] = null;
+            }
+
             $data['risk_locations'] = isset($data['risk_locations']) ? json_encode($data['risk_locations']) : null;
             $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
+            $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
+            $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
             $data['is_submit'] = 1;
             $data['user_id'] = Auth::user()->id;
+
+            unset($data['policy_start_date'], $data['policy_end_date']);
+
             Quote::create($data);
 
             return redirect()->route('dashboard')->with('success', 'Quote created successfully!');
@@ -60,8 +73,20 @@ class AdminController extends Controller
         $quote = Quote::findOrFail($id);
 
         $data = $request->all();
+
+        if (!empty($data['policy_start_date']) && !empty($data['policy_end_date'])) {
+            $data['policy_period'] = date('d/m/Y', strtotime($data['policy_start_date'])) . ' - ' . date('d/m/Y', strtotime($data['policy_end_date']));
+        } else {
+            $data['policy_period'] = null;
+        }
+
         $data['risk_locations'] = isset($data['risk_locations']) ? json_encode($data['risk_locations']) : null;
         $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
+        $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
+        $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
+        $data['is_final_submit'] = $data['is_final_submit'] == 0 ? 0 : 1;
+
+        unset($data['policy_start_date'], $data['policy_end_date']);
 
         $quote->update($data);
 
@@ -106,5 +131,81 @@ class AdminController extends Controller
         $quote->save();
 
         return redirect()->route('quotes.download', $id);
+    }
+
+    public function noteList($id)
+    {
+        $notes = Note::where('quote_id', $id)->get();
+
+        return view('notes.list', compact('notes', 'id'));
+    }
+
+    public function createNote($id)
+    {
+        $quote_id = $id;
+        $bankingDetails = BankingDetail::all();
+        return view('notes.create', compact('bankingDetails', 'quote_id'));
+    }
+
+    public function storeNote(Request $request)
+    {
+        $particulars = json_decode($request->input('particulars'), true);
+
+        $note = Note::create([
+            'quote_id'         => $request->input('quote_id'),
+            'bank_id'          => $request->input('bank_id'),
+            'user_id'          => Auth::user()->id,
+            'credit_type'      => $request->input('note_type'), // or 'credit_type' if that's your column
+            'invoice_number'   => $request->input('invoice_number'),
+            'date'             => $request->input('date'),
+            'to'               => $request->input('to'),
+            'reinsured'        => $request->input('reinsured'),
+            'Reinsurer'        => $request->input('Reinsurer'),
+            'original_insured' => $request->input('original_insured'),
+            'PPW'              => $request->input('PPW'),
+            'particulars'      => $particulars,
+        ]);
+
+        return redirect()->route('note.list', $request->input('quote_id'))->with('success', 'Note created successfully!');
+    }
+
+    public function editNote($id)
+    {
+        $note = \App\Models\Note::findOrFail($id);
+        $bankingDetails = \App\Models\BankingDetail::all();
+        return view('notes.edit', compact('note', 'bankingDetails'));
+    }
+
+    public function updateNote(Request $request, $id)
+    {
+        $note = \App\Models\Note::findOrFail($id);
+        $particulars = json_decode($request->input('particulars'), true);
+
+        $note->update([
+            'bank_id'          => $request->input('bank_id'),
+            'credit_type'      => $request->input('note_type'),
+            'invoice_number'   => $request->input('invoice_number'),
+            'date'             => $request->input('date'),
+            'to'               => $request->input('to'),
+            'reinsured'        => $request->input('reinsured'),
+            'Reinsurer'        => $request->input('Reinsurer'),
+            'original_insured' => $request->input('original_insured'),
+            'PPW'              => $request->input('PPW'),
+            'particulars'      => $particulars,
+        ]);
+
+        return redirect()->route('note.list', $note->quote_id)->with('success', 'Note updated successfully!');
+    }
+
+    public function downloadNotePdf($id)
+    {
+        $note = Note::findOrFail($id);
+        $quote = Quote::findOrFail($note->quote_id);
+        $bankingDetail = BankingDetail::findOrFail($note->bank_id);
+        // For testing: Render PDF as HTML view in browser instead of downloading
+        // return Pdf::loadView('notes.pdf', compact('note'))
+        //     ->setPaper('a4')
+        //     ->download('note_' . $note->invoice_number . '.pdf');
+        return view('notes.pdf', compact('note'));
     }
 }

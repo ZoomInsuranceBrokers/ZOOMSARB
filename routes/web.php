@@ -35,5 +35,17 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/quotes/{id}/finalsubmit-download', [AdminController::class, 'finalSubmitAndDownload'])->name('quotes.finalsubmit.download');
 
+    Route::get('/note/list/{id}', [AdminController::class, 'noteList'])->name('note.list');
+
+    Route::get('/note/create/{id}', [AdminController::class, 'createNote'])->name('note.create');
+
+    Route::post('/note/store', [AdminController::class, 'storeNote'])->name('note.store');
+
+    Route::get('/notes/{id}/edit', [App\Http\Controllers\AdminController::class, 'editNote'])->name('note.edit');
+
+    Route::post('/notes/{id}/update', [App\Http\Controllers\AdminController::class, 'updateNote'])->name('note.update');
+
+    Route::get('/notes/{id}/pdf', [App\Http\Controllers\AdminController::class, 'downloadNotePdf'])->name('note.pdf');
+
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
