@@ -202,10 +202,10 @@ class AdminController extends Controller
         $note = Note::findOrFail($id);
         $quote = Quote::findOrFail($note->quote_id);
         $bankingDetail = BankingDetail::findOrFail($note->bank_id);
-        // For testing: Render PDF as HTML view in browser instead of downloading
-        // return Pdf::loadView('notes.pdf', compact('note'))
-        //     ->setPaper('a4')
-        //     ->download('note_' . $note->invoice_number . '.pdf');
-        return view('notes.pdf', compact('note'));
+
+        return Pdf::loadView('notes.pdf', compact('note'))
+            ->setPaper('a4')
+            ->download('note_' . $note->invoice_number . '.pdf');
+        // return view('notes.pdf', compact('note'));
     }
 }
