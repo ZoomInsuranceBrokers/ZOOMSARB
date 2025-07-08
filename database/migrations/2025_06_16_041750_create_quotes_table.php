@@ -37,6 +37,9 @@ class CreateQuotesTable extends Migration
             $table->boolean('is_edit')->default(1);
             $table->boolean('is_final_submit')->default(0);
             $table->longText('policy_wording')->nullable();
+            $table->string('cedant')->nullable();
+            $table->string('reinsurer')->nullable();
+            $table->string('placemnet_slip')->nullable();
             $table->timestamps();
         });
     }

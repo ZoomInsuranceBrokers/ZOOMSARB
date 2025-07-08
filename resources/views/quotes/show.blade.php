@@ -1,11 +1,11 @@
-
 @extends('layouts.app')
 
 @section('title', 'Quote Details')
 
 @section('content')
     <div style="max-width: 900px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #e3f0ff 0%, #f7faff 100%); border-radius: 18px; box-shadow: 0 2px 16px #2e319222; padding: 2.5rem 2rem; margin-bottom: 2rem;">
+        <div
+            style="background: linear-gradient(135deg, #e3f0ff 0%, #f7faff 100%); border-radius: 18px; box-shadow: 0 2px 16px #2e319222; padding: 2.5rem 2rem; margin-bottom: 2rem;">
             <h2 style="color:#2e3192; font-weight:700; margin-bottom:1.5rem;">Quote Details</h2>
             <table style="width:100%; border-collapse:separate; border-spacing:0 0.7rem;">
                 <tr>
@@ -22,7 +22,7 @@
                 </tr>
                 <tr>
                     <td style="font-weight:600; color:#2e3192;">Policy Period</td>
-                    <td>{{ $quote->policy_period }}</td>
+                    <td>{{ $quote->policy_period ?? 'To be advised' }}</td>
                 </tr>
                 <tr>
                     <td style="font-weight:600; color:#2e3192;">Occupancy</td>
@@ -35,10 +35,10 @@
                 <tr>
                     <td style="font-weight:600; color:#2e3192;">Risk Locations</td>
                     <td>
-                        @if($quote->risk_locations)
+                        @if ($quote->risk_locations)
                             <ul style="margin:0; padding-left:1.2em;">
-                                @foreach(json_decode($quote->risk_locations, true) as $loc)
-                                    <li>{{ $loc }}</li>
+                                @foreach (json_decode($quote->risk_locations, true) as $location => $sum)
+                                    <li><strong>{{ $location }}</strong>: Sum Insured: {{ number_format($sum) }}</li>
                                 @endforeach
                             </ul>
                         @endif
@@ -63,9 +63,9 @@
                 <tr>
                     <td style="font-weight:600; color:#2e3192;">Limit of Indemnity</td>
                     <td>
-                        @if($quote->limit_of_indemnity)
+                        @if ($quote->limit_of_indemnity)
                             <ul style="margin:0; padding-left:1.2em;">
-                                @foreach(json_decode($quote->limit_of_indemnity, true) as $lim)
+                                @foreach (json_decode($quote->limit_of_indemnity, true) as $lim)
                                     <li>{{ $lim }}</li>
                                 @endforeach
                             </ul>
@@ -127,7 +127,7 @@
                 <tr>
                     <td style="font-weight:600; color:#2e3192;">Policy Wording</td>
                     <td>
-                        @if($quote->policy_wording)
+                        @if ($quote->policy_wording)
                             <div style="background:#fff; border-radius:8px; padding:1rem; max-height:200px; overflow:auto;">
                                 {!! $quote->policy_wording !!}
                             </div>
@@ -136,7 +136,8 @@
                 </tr>
             </table>
             <div style="margin-top:2rem;">
-                <a href="{{ route('quotes.list') }}" style="background: #2e3192; color: #fff; border-radius: 8px; padding: 0.7rem 2.2rem; font-weight:600; text-decoration:none; font-size:1rem; box-shadow: 0 2px 8px #2e319222; transition: background 0.2s;">
+                <a href="{{ route('quotes.list') }}"
+                    style="background: #2e3192; color: #fff; border-radius: 8px; padding: 0.7rem 2.2rem; font-weight:600; text-decoration:none; font-size:1rem; box-shadow: 0 2px 8px #2e319222; transition: background 0.2s;">
                     <i class="fas fa-arrow-left"></i> Back to Quotes
                 </a>
             </div>

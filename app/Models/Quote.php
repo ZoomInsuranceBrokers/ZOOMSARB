@@ -42,6 +42,9 @@ class Quote extends Model
         'is_edit',
         'is_final_submit',
         'policy_wording',
+        'cedant',
+        'reinsurer',
+        'placemnet_slip',
     ];
 
     /**

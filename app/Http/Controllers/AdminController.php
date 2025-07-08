@@ -26,21 +26,46 @@ class AdminController extends Controller
     {
         try {
             $data = $request->all();
-
+            // Handle Policy Period (To Be Advised or Dates)
             if (!empty($data['policy_start_date']) && !empty($data['policy_end_date'])) {
                 $data['policy_period'] = date('d/m/Y', strtotime($data['policy_start_date'])) . ' - ' . date('d/m/Y', strtotime($data['policy_end_date']));
             } else {
                 $data['policy_period'] = null;
             }
 
-            $data['risk_locations'] = isset($data['risk_locations']) ? json_encode($data['risk_locations']) : null;
+            // Handle Risk Locations as JSON (location + sum insured pairs)
+            if (!empty($data['risk_location']) && !empty($data['risk_sum_insured'])) {
+                $riskLocations = [];
+                foreach ($data['risk_location'] as $index => $location) {
+                    $location = trim($location);
+                    $sum = isset($data['risk_sum_insured'][$index]) ? trim($data['risk_sum_insured'][$index]) : null;
+                    if ($location !== '' && $sum !== null) {
+                        $riskLocations[$location] = is_numeric($sum) ? (float)$sum : $sum;
+                    }
+                }
+                $data['risk_locations'] = json_encode($riskLocations);
+            } else {
+                $data['risk_locations'] = null;
+            }
+
+            // Handle arrays as JSON
             $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
             $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
             $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
+
+            // Other fields
             $data['is_submit'] = 1;
             $data['user_id'] = Auth::user()->id;
 
-            unset($data['policy_start_date'], $data['policy_end_date']);
+            // Remove helper/unused fields
+            unset(
+                $data['policy_start_date'],
+                $data['policy_end_date'],
+                $data['policy_period_tba'],
+                $data['risk_locations_json'],
+                $data['risk_location'],
+                $data['risk_sum_insured']
+            );
 
             Quote::create($data);
 
@@ -58,6 +83,7 @@ class AdminController extends Controller
 
     public function showQuotes($id)
     {
+
         $quote = Quote::findOrFail($id);
         return view('quotes.show', compact('quote'));
     }
@@ -80,14 +106,34 @@ class AdminController extends Controller
             $data['policy_period'] = null;
         }
 
-        $data['risk_locations'] = isset($data['risk_locations']) ? json_encode($data['risk_locations']) : null;
+        // Handle Risk Locations as JSON (location + sum insured pairs)
+        if (!empty($data['risk_location']) && !empty($data['risk_sum_insured'])) {
+            $riskLocations = [];
+            foreach ($data['risk_location'] as $index => $location) {
+                $location = trim($location);
+                $sum = isset($data['risk_sum_insured'][$index]) ? trim($data['risk_sum_insured'][$index]) : null;
+                if ($location !== '' && $sum !== null) {
+                    $riskLocations[$location] = is_numeric($sum) ? (float)$sum : $sum;
+                }
+            }
+            $data['risk_locations'] = json_encode($riskLocations);
+        } else {
+            $data['risk_locations'] = null;
+        }
+
         $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
         $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
         $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
         $data['is_final_submit'] = $data['is_final_submit'] == 0 ? 0 : 1;
 
-        unset($data['policy_start_date'], $data['policy_end_date']);
-
+        unset(
+            $data['policy_start_date'],
+            $data['policy_end_date'],
+            $data['policy_period_tba'],
+            $data['risk_locations_json'],
+            $data['risk_location'],
+            $data['risk_sum_insured']
+        );
         $quote->update($data);
 
         return redirect()->route('quotes.show', $quote->id)->with('success', 'Quote updated successfully!');

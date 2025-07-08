@@ -63,6 +63,12 @@
                             <input type="date" id="policy_end_date" name="policy_end_date" class="form-input"
                                 value="{{ parseDateForInput($period[1] ?? '') }}" style="flex:1;">
                         </div>
+                        <div style="margin-top:0.5rem;">
+                            <input type="checkbox" id="policy_period_tba" name="policy_period_tba" value="1"
+                                onchange="togglePolicyPeriodTBA(this)">
+                            <label for="policy_period_tba" style="color:#2e3192; font-weight:500; margin-left:4px;">To Be
+                                Advised</label>
+                        </div>
                     </div>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top:1.2rem;">
@@ -78,27 +84,61 @@
                     </div>
                 </div>
                 <!-- Risk Locations (multiple rows) -->
+                <!-- Risk Locations (with Sum Insured, Upload/Download, Add More) -->
                 <div style="margin-top:1.2rem;">
                     <label style="color:#2e3192; font-weight:600;">Risk Locations</label>
+
+                    <!-- Download + Upload Buttons -->
+                    <div style="margin-bottom:0.7rem; margin-top:1.2rem;">
+                        <button type="button" onclick="downloadSampleCSV()"
+                            style="background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.3rem 1.1rem; font-size:0.95rem; cursor:pointer;">
+                            Download Sample CSV
+                        </button>
+
+                        <input type="file" id="riskLocationsCSV" accept=".csv"
+                            style="margin-left:1rem; display:inline-block;" onchange="handleCSVUpload(this)"
+                            class="form-input">
+                        <label for="riskLocationsCSV"
+                            style="color:#2e3192; font-weight:500; margin-left:6px; cursor:pointer;">Upload CSV</label>
+                    </div>
+
+                    <!-- Dynamic Input Rows -->
                     <div id="riskLocationsWrapper">
                         @php
-                            $riskLocations = $quote->risk_locations ? json_decode($quote->risk_locations, true) : [''];
+                            $riskLocations = $quote->risk_locations
+                                ? json_decode($quote->risk_locations, true)
+                                : ['' => ''];
                         @endphp
-                        @foreach ($riskLocations as $loc)
-                            <input type="text" name="risk_locations[]" class="form-input" value="{{ $loc }}"
-                                placeholder="Enter risk location">
+                        @foreach ($riskLocations as $loc => $sum)
+                            <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                                <input type="text" name="risk_location[]" class="form-input" value="{{ $loc }}"
+                                    placeholder="Enter risk location" required>
+                                <input type="number" name="risk_sum_insured[]" class="form-input"
+                                    value="{{ $sum }}" placeholder="Sum Insured" min="0" step="any"
+                                    required>
+                                <button type="button" onclick="removeRiskLocation(this)"
+                                    style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
+                            </div>
                         @endforeach
                     </div>
+
+                    <!-- Add More Button -->
                     <button type="button" onclick="addRiskLocation()"
-                        style="margin-top:0.5rem; background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.4rem 1.2rem; font-size:0.95rem; cursor:pointer;">Add
-                        More</button>
+                        style="margin-top:0.5rem; background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.4rem 1.2rem; font-size:0.95rem; cursor:pointer;">
+                        Add More
+                    </button>
+
+                    <!-- Hidden JSON field -->
+                    <input type="hidden" id="riskLocationsJson" name="risk_locations_json">
                 </div>
+
                 <!-- Sum Insured Details -->
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top:1.2rem;">
                     <div style="flex:1 1 300px;">
                         <label for="property_damage" style="color:#2e3192; font-weight:600;">Property Damage</label>
-                        <input type="number" id="property_damage" name="property_damage" class="form-input" min="0"
-                            step="any" value="{{ $quote->property_damage }}" oninput="updateTotalSumInsured()">
+                        <input type="number" id="property_damage" name="property_damage" class="form-input"
+                            min="0" step="any" value="{{ $quote->property_damage }}"
+                            oninput="updateTotalSumInsured()">
                     </div>
                     <div style="flex:1 1 300px;">
                         <label for="business_interruption" style="color:#2e3192; font-weight:600;">Business
@@ -219,6 +259,22 @@
                             </select>
                         </div>
                     </div>
+
+                    <!-- Hidden Fields (Sedant & Reinsurer) -->
+                    <div id="conversionFields" style="display:none; margin-top:1rem; flex-wrap: wrap; gap: 1.5rem;">
+                        <div style="flex:1 1 300px;">
+                            <label for="sedant_name" style="color:#2e3192; font-weight:600;">Cedant Name</label>
+                            <input type="text" name="cedant" id="sedant_name" class="form-input"
+                                placeholder="Enter Sedant Name">
+                        </div>
+
+                        <div style="flex:1 1 300px;">
+                            <label for="reinsurer_name" style="color:#2e3192; font-weight:600;">Reinsurer Name</label>
+                            <input type="text" name="reinsurer" id="reinsurer_name" class="form-input"
+                                placeholder="Enter Reinsurer Name">
+                        </div>
+                    </div>
+
                 </div>
                 <div style="text-align:center; margin-top:2rem;">
                     <button type="submit"
@@ -249,17 +305,27 @@
         }
     </style>
     <script>
-        // Add more risk locations
-        function addRiskLocation() {
-            const wrapper = document.getElementById('riskLocationsWrapper');
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = 'risk_locations[]';
-            input.className = 'form-input';
-            input.placeholder = 'Enter risk location';
-            input.style.marginTop = '0.5rem';
-            wrapper.appendChild(input);
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.getElementById('is_final_submit');
+            const fields = document.getElementById('conversionFields');
+
+            function toggleFields() {
+                if (select.value === "1") {
+                    fields.style.display = "flex";
+                } else {
+                    fields.style.display = "none";
+                }
+            }
+
+            // Run on page load (in case of edit)
+            toggleFields();
+
+            // Run on change
+            select.addEventListener('change', toggleFields);
+        });
+    </script>
+
+    <script>
         // Add more indemnity limits
         function addIndemnityLimit() {
             const wrapper = document.getElementById('indemnityLimitsWrapper');
@@ -299,5 +365,108 @@
             const bi = parseFloat(document.getElementById('business_interruption').value) || 0;
             document.getElementById('total_sum_insured').value = pd + bi;
         }
+    </script>
+    <script>
+        // Download sample CSV
+        function downloadSampleCSV() {
+            const csv = "Risk Location,Sum Insured\nLocation 1,1000000\nLocation 2,2000000";
+            const blob = new Blob([csv], {
+                type: 'text/csv'
+            });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "risk_locations_sample.csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Handle CSV upload
+        function handleCSVUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l.length);
+                // Remove header if present
+                let start = 0;
+                if (lines[0].toLowerCase().includes('risk location')) start = 1;
+                // Remove all current fields except the first one
+                const wrapper = document.getElementById('riskLocationsWrapper');
+                wrapper.innerHTML = '';
+                for (let i = start; i < lines.length; i++) {
+                    const parts = lines[i].split(',');
+                    if (parts.length >= 2) {
+                        const div = document.createElement('div');
+                        div.style.display = 'flex';
+                        div.style.gap = '0.5rem';
+                        div.style.marginBottom = '0.5rem';
+                        div.innerHTML = `
+                    <input type="text" name="risk_location[]" class="form-input" placeholder="Enter risk location" value="${parts[0].trim()}" required>
+                    <input type="number" name="risk_sum_insured[]" class="form-input" placeholder="Sum Insured" min="0" step="any" value="${parts[1].trim()}" required>
+                    <button type="button" onclick="removeRiskLocation(this)" style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
+                `;
+                        wrapper.appendChild(div);
+                    }
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+    <script>
+        function addRiskLocation() {
+            const wrapper = document.getElementById('riskLocationsWrapper');
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '0.5rem';
+            div.style.marginBottom = '0.5rem';
+            div.innerHTML = `
+        <input type="text" name="risk_location[]" class="form-input" placeholder="Enter risk location" required>
+        <input type="number" name="risk_sum_insured[]" class="form-input" placeholder="Sum Insured" min="0" step="any" required>
+        <button type="button" onclick="removeRiskLocation(this)" style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
+    `;
+            wrapper.appendChild(div);
+        }
+
+        function removeRiskLocation(btn) {
+            btn.parentElement.remove();
+        }
+
+        // On form submit, build JSON and put in hidden input
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const tba = document.getElementById('policy_period_tba');
+                if (tba && tba.checked) {
+                    document.getElementById('policy_start_date').value = '';
+                    document.getElementById('policy_end_date').value = '';
+                }
+
+                const locations = document.getElementsByName('risk_location[]');
+                const sums = document.getElementsByName('risk_sum_insured[]');
+                const hidden = document.getElementById('riskLocationsJson');
+
+                let arr = [];
+
+                for (let i = 0; i < locations.length; i++) {
+                    const loc = locations[i].value.trim();
+                    const sum = sums[i].value.trim();
+                    if (loc !== '') {
+                        arr.push({
+                            location: loc,
+                            sum_insured: sum
+                        });
+                    }
+                }
+
+                console.log("Final JSON:", arr);
+                if (hidden) {
+                    hidden.value = arr.length ? JSON.stringify(arr) : '';
+                }
+            });
+        });
     </script>
 @endsection

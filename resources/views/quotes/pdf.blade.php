@@ -112,13 +112,13 @@
     </div>
     <div class="container">
         <h2 class="center" style="margin: 30px 0 30px 0; font-size: 18px; font-weight: bold; text-decoration: underline;">
-            Reinsurance Placement Slip</h2>
+            Reinsurance Quote Slip</h2>
         <div class="section">
             <table class="section-table">
                 <tr>
                     <td class="label">TYPE:</td>
                     <td class="value">
-                        <div><b>Section A:</b> {{ $quote->policy_name ?? '' }}</div>
+                        <div>{{ $quote->policy_name ?? '' }}</div>
 
                     </td>
                 </tr>
@@ -141,6 +141,14 @@
                 <tr>
                     <td class="label">Policy Name:</td>
                     <td class="value">{{ $quote->policy_name ?? '' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Cedant Name:</td>
+                    <td class="value">{{ $quote->cedant ?? '' }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Reinsurer Name:</td>
+                    <td class="value">{{ $quote->reinsurer ?? '' }}</td>
                 </tr>
                 <tr>
                     <td class="label">Occupancy:</td>
@@ -228,7 +236,6 @@
                 </tr>
             </table>
         </div>
-        <div class="policy-wording-title">Policy Wording</div>
         <div>
             {!! $quote->policy_wording ?? '' !!}
         </div>
