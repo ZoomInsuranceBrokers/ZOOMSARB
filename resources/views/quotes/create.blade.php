@@ -24,8 +24,7 @@
                         <label for="policy_name" style="color:#2e3192; font-weight:600;">Policy Name</label>
                         <select id="policy_name" name="policy_name" class="form-input">
                             <option value="">Select Policy</option>
-                            <option value="Terrorism and Sabotage">Terrorism and Sabotage</option>
-                            <option value="Terrorism Liability">Terrorism Liability</option>
+                            <option value="Terrorism and Sabotage and Terrorism Liability Insurance">Terrorism and Sabotage and Terrorism Liability Insurance</option>
                             <option value="Professional Indemnity">Professional Indemnity Policy</option>
                             <option value="Cyber Insurance">Cyber Insurance</option>
                         </select>
@@ -77,7 +76,7 @@
                             <input type="text" name="risk_location[]" class="form-input"
                                 placeholder="Enter risk location" required>
                             <input type="number" name="risk_sum_insured[]" class="form-input" placeholder="Sum Insured"
-                                min="0" step="any" required>
+                                min="0" step="any">
                             <button type="button" onclick="removeRiskLocation(this)"
                                 style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
                         </div>

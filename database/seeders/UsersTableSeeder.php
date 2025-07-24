@@ -22,5 +22,31 @@ class UsersTableSeeder extends Seeder
             'role' => 'admin',
             'remember_token' => Str::random(10),
         ]);
+
+        User::create([
+            'employee_code' => '10390',
+            'name' => 'Preeti Chawala',
+            'email' => 'preeti.chawla@zoominsurancebrokers.com',
+            'password' => Hash::make('password123'),
+            'mobile' => '1234567890',
+            'profile' => null,
+            'is_active' => true,
+            'i_delete' => false,
+            'role' => 'admin',
+            'remember_token' => Str::random(10),
+        ]);
+
+        User::create([
+            'employee_code' => '10572',
+            'name' => 'Aakash Kashyap',
+            'email' => 'aakash.k@zoominsurancebrokers.com',
+            'password' => Hash::make('password123'),
+            'mobile' => '1234567890',
+            'profile' => null,
+            'is_active' => true,
+            'i_delete' => false,
+            'role' => 'admin',
+            'remember_token' => Str::random(10),
+        ]);
     }
 }

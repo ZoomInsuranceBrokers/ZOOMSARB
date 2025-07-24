@@ -27,12 +27,9 @@
                         <label for="policy_name" style="color:#2e3192; font-weight:600;">Policy Name</label>
                         <select id="policy_name" name="policy_name" class="form-input">
                             <option value="">Select Policy</option>
-                            <option value="Terrorism and Sabotage"
-                                {{ $quote->policy_name == 'Terrorism and Sabotage' ? 'selected' : '' }}>Terrorism and
-                                Sabotage</option>
-                            <option value="Terrorism Liability"
-                                {{ $quote->policy_name == 'Terrorism Liability' ? 'selected' : '' }}>Terrorism Liability
-                            </option>
+                            <option value="Terrorism and Sabotage and Terrorism Liability Insurance"
+                                {{ $quote->policy_name == 'Terrorism and Sabotage and Terrorism Liability Insurance' ? 'selected' : '' }}>Terrorism and Sabotage and Terrorism Liability Insurance</option>
+                           
                             <option value="Professional Indemnity"
                                 {{ $quote->policy_name == 'Professional Indemnity' ? 'selected' : '' }}>Professional
                                 Indemnity Policy</option>
