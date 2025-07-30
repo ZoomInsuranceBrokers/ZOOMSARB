@@ -30,10 +30,9 @@
                         style="background: #2e3192; color: #fff; border-radius: 6px; padding: 0.5rem 1.2rem; font-weight:600; text-decoration:none; font-size:0.98rem; transition: background 0.2s;">
                         <i class="fas fa-file-pdf"></i> PDF
                     </a>
-                    <form method="POST" action="{{ route('quotes.destroy', $quote->id) }}" style="display:inline;"
+                    <form method="GET" action="{{ route('quotes.destroy', $quote->id) }}" style="display:inline;"
                         onsubmit="return confirm('Are you sure you want to delete this quote?');">
                         @csrf
-                        @method('DELETE')
                         <button type="submit" onclick="event.stopPropagation();"
                             style="background: #d32f2f; color: #fff; border:none; border-radius: 6px; padding: 0.5rem 1.2rem; font-weight:600; font-size:0.98rem; cursor:pointer; transition: background 0.2s;">
                             <i class="fas fa-trash"></i> Delete

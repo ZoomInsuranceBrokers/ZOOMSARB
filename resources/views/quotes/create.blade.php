@@ -58,7 +58,7 @@
                 </div>
                 <!-- Risk Locations (multiple rows) -->
 
-                <div style="margin-top:1.2rem;">
+                {{-- <div style="margin-top:1.2rem;">
                     <label style="color:#2e3192; font-weight:600;">Risk Locations</label>
                     <div style="margin-bottom:0.7rem; margin-top:1.2rem;">
                         <button type="button" onclick="downloadSampleCSV()"
@@ -86,7 +86,7 @@
                         Add More
                     </button>
                     <input type="hidden" id="riskLocationsJson" name="risk_locations_json">
-                </div>
+                </div> --}}
                 <!-- Sum Insured Details -->
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top:1.2rem;">
                     <div style="flex:1 1 300px;">

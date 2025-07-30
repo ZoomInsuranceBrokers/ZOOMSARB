@@ -39,7 +39,8 @@ class CreateQuotesTable extends Migration
             $table->longText('policy_wording')->nullable();
             $table->string('cedant')->nullable();
             $table->string('reinsurer')->nullable();
-            $table->string('placemnet_slip')->nullable();
+            $table->string('placement_slip')->nullable();
+            $table->string('brokerage_percentage')->nullable();
             $table->timestamps();
         });
     }

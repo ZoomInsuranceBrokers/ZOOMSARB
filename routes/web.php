@@ -37,15 +37,21 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/note/list/{id}', [AdminController::class, 'noteList'])->name('note.list');
 
-    Route::get('/note/create/{id}', [AdminController::class, 'createNote'])->name('note.create');
+    Route::get('/note/debit/create/{id}', [AdminController::class, 'createDebitNote'])->name('note.debit.create');
+
+    Route::get('/note/credit/create/{id}', [AdminController::class, 'createCreditNote'])->name('note.credit.create');
 
     Route::post('/note/store', [AdminController::class, 'storeNote'])->name('note.store');
+
+    Route::post('/debit/store', [AdminController::class, 'storeDebitNote'])->name('debit.store');
+
+    Route::post('/credit/store', [AdminController::class, 'storeCreditNote'])->name('credit.store');
 
     Route::get('/notes/{id}/edit', [App\Http\Controllers\AdminController::class, 'editNote'])->name('note.edit');
 
     Route::post('/notes/{id}/update', [App\Http\Controllers\AdminController::class, 'updateNote'])->name('note.update');
 
-    Route::get('/notes/{id}/pdf', [App\Http\Controllers\AdminController::class, 'downloadNotePdf'])->name('note.pdf');
+    Route::get('/notes/{id}/pdf', [AdminController::class, 'downloadNotePdf'])->name('note.pdf');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

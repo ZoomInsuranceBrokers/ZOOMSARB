@@ -67,24 +67,26 @@
         }
 
         .details-table {
-            width: 60%;
+            width: 100%;
+            /* Use full width to prevent squeezing */
             margin-bottom: 18px;
         }
 
         .details-table td {
             vertical-align: top;
-            padding-bottom: 2px;
-            padding-right: 12px;
+            padding-bottom: 4px;
         }
 
         .details-table .label {
             font-weight: bold;
-            width: 40%;
+            width: 100%;
+            /* Corrected width for proper alignment */
+            padding-right: 10px;
         }
 
         .details-table .value {
             width: 100%;
-            margin-left: 70px;
+            /* Allocate remaining width for values */
         }
 
         .particulars-table {
@@ -159,6 +161,12 @@
         .underline {
             text-decoration: underline;
         }
+
+        .banking-details {
+            margin-top: 25px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 
@@ -172,7 +180,7 @@
     <div class="container">
         <table class="info-table">
             <tr>
-                <td class="left" style="width:33%;">
+                <td class="left" style="width:100%;">
                     Invoice No. {{ $note->invoice_number }}
                 </td>
                 <td class="center" style="width:34%;"></td>
@@ -190,62 +198,137 @@
         </div>
         <table class="details-table">
             <tr>
+                <td class="label">Original Insured</td>
+                <td class="value">{{ $quote->insured_name }}</td>
+            </tr>
+            <tr>
                 <td class="label">Reinsurer (RI & Order)</td>
-                <td class="value">-</td>
-                <td class="value">{!! nl2br(e($note->Reinsurer)) !!}</td>
-            </tr>
-            <tr>
-                <td class="label">Reinsured</td>
-                <td class="value">-</td>
-                <td class="value">{{ $note->reinsured }}</td>
-            </tr>
-            <tr>
-                <td class="label">Policy Type</td>
-                <td class="value">-</td>
-                <td class="value">{{ $note->policy_type ?? 'Terrorism and Sabotage & Terrorism Liability Insurance' }}
+                <td class="value">
+                    @if ($quote->reinsurer)
+                        @php
+                            $reinsurers = json_decode($quote->reinsurer, true);
+                            if (!is_array($reinsurers)) {
+                                $reinsurers = [];
+                            } // Ensure it's an array
+                        @endphp
+                        @foreach ($reinsurers as $reinsurer)
+                            {{ $reinsurer['name'] }} ({{ $reinsurer['percentage'] }}%)<br>
+                        @endforeach
+                    @endif
                 </td>
             </tr>
             <tr>
-                <td class="label">PPW</td>
-                <td class="value">-</td>
-                <td class="value">{{ $note->PPW }}</td>
+                <td class="label">Policy Type</td>
+                <td class="value">{{ $quote->policy_name ?? '' }}</td>
             </tr>
+            @if (!empty($note->PPW))
+                <tr>
+                    <td class="label">PPW</td>
+                    <td class="value">{{ $note->PPW }}</td>
+                </tr>
+            @endif
         </table>
         <table class="particulars-table">
             <thead>
                 <tr>
-                    <th>Particulars</th>
-                    <th>Amount (INR)</th>
+                    <th style="text-align:left;">Particulars</th>
+                    <th style="text-align:right;">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                @php $total = 0; @endphp
-                @foreach ($note->particulars as $key => $value)
-                    <tr @if (stripos($key, 'less') !== false) style="background:#e3f0ff;" @endif>
-                        <td @if (stripos($key, 'premium due from') !== false || stripos($key, 'total amount due') !== false) class="bold" @endif>
-                            {!! stripos($key, 'premium due from') !== false || stripos($key, 'total amount due') !== false
-                                ? '<span class="bold underline">' . $key . '</span>'
-                                : $key !!}
-                        </td>
-                        <td style="text-align:right;">
-                            @if (is_numeric($value))
-                                {{ number_format($value, 2) }}
-                                @php $total += $value; @endphp
-                            @else
-                                {{ $value }}
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
+                @php
+                    $particulars = $note->particulars;
+
+                    // Check if the data is a string and needs decoding.
+                    if (is_string($particulars)) {
+                        $particulars = json_decode($particulars, true);
+                    }
+
+                    // Handle cases of double-encoding: if the first decode still results in a string, decode again.
+                    if (is_string($particulars)) {
+                        $particulars = json_decode($particulars, true);
+                    }
+
+                    // Final check to ensure we have an array, otherwise create an empty one to prevent errors.
+                    if (!is_array($particulars)) {
+                        $particulars = [];
+                    }
+
+                    $grandTotal = 0;
+                    if ($note->credit_type === 'credit') {
+                        // For credit notes, the total is the last value in the array.
+                        $grandTotal = end($particulars);
+                    } else {
+                        // For debit notes, look for the specific 'Grand Total Due' key.
+                        $grandTotal = $particulars['Grand Total Due'] ?? end($particulars);
+                    }
+                @endphp
+
+                @if (!empty($particulars))
+                    @foreach ($particulars as $key => $value)
+                        @php
+                            // Determine styling based on keywords in the key
+                            $isSubItem = str_contains($key, 'Less:');
+                            $isSubTotal = str_contains($key, 'Premium due from') || str_contains($key, 'Total due to');
+                            $isGrandTotal = str_contains($key, 'Grand Total Due');
+                            $isShare = str_contains($key, "'s share @");
+
+                            $rowStyle = '';
+                            $keyStyle = '';
+                            if ($isSubItem) {
+                                $keyStyle = 'padding-left: 25px;';
+                            }
+                            if ($isShare) {
+                                $rowStyle = 'padding-top: 10px;';
+                            }
+                            if ($isSubTotal) {
+                                $keyStyle = 'font-weight: bold;';
+                            }
+                            if ($isGrandTotal) {
+                                $rowStyle = 'border-top: 2px solid #333;';
+                                $keyStyle = 'font-weight: bold;';
+                            }
+                        @endphp
+                        <tr style="{{ $rowStyle }}">
+                            <td style="{{ $keyStyle }}">
+                                {{-- For debit notes, remove the reinsurer name from the "Less" lines for cleaner look --}}
+                                @if ($note->credit_type === 'debit' && $isSubItem)
+                                    {{ trim(explode(' for ', $key)[0]) }}
+                                @else
+                                    {{ $key }}
+                                @endif
+                            </td>
+                            <td
+                                style="text-align:right; font-weight: {{ $isSubTotal || $isGrandTotal ? 'bold' : 'normal' }};">
+                                @if (is_numeric($value))
+                                    {{-- For "Less" items, show the number as positive since the description implies subtraction --}}
+                                    {{ number_format(abs($value), 2) }}
+                                @else
+                                    {{ $value }}
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                @endif
             </tbody>
         </table>
         <div class="amount-words italic">
             (Total Amount — Rupees
-            {{ ucwords(\NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format($total)) }} only)
+            {{ ucwords(\NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format(abs($grandTotal))) }}
+            only)
         </div>
         <div class="amount-numbers">
-            ({{ number_format($total, 2) }})
+            Total Amount Due: INR {{ number_format($grandTotal, 2) }}
         </div>
+        @if (isset($bankingDetail) && $bankingDetail)
+            <div class="banking-details">
+                <span class="bold underline">Our Banking Details:</span><br>
+                Bank: {{ $bankingDetail->Bank }}<br>
+                Account No.- {{ $bankingDetail->Account_No }}<br>
+                IFSC Code- {{ $bankingDetail->IFSC_Code }}<br>
+                Branch: {{ $bankingDetail->Branch }}
+            </div>
+        @endif
     </div>
     <div class="footer">
         <table class="footer-table">

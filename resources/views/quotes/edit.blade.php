@@ -28,8 +28,9 @@
                         <select id="policy_name" name="policy_name" class="form-input">
                             <option value="">Select Policy</option>
                             <option value="Terrorism and Sabotage and Terrorism Liability Insurance"
-                                {{ $quote->policy_name == 'Terrorism and Sabotage and Terrorism Liability Insurance' ? 'selected' : '' }}>Terrorism and Sabotage and Terrorism Liability Insurance</option>
-                           
+                                {{ $quote->policy_name == 'Terrorism and Sabotage and Terrorism Liability Insurance' ? 'selected' : '' }}>
+                                Terrorism and Sabotage and Terrorism Liability Insurance</option>
+
                             <option value="Professional Indemnity"
                                 {{ $quote->policy_name == 'Professional Indemnity' ? 'selected' : '' }}>Professional
                                 Indemnity Policy</option>
@@ -82,7 +83,7 @@
                 </div>
                 <!-- Risk Locations (multiple rows) -->
                 <!-- Risk Locations (with Sum Insured, Upload/Download, Add More) -->
-                <div style="margin-top:1.2rem;">
+                {{-- <div style="margin-top:1.2rem;">
                     <label style="color:#2e3192; font-weight:600;">Risk Locations</label>
 
                     <!-- Download + Upload Buttons -->
@@ -127,15 +128,14 @@
 
                     <!-- Hidden JSON field -->
                     <input type="hidden" id="riskLocationsJson" name="risk_locations_json">
-                </div>
+                </div> --}}
 
                 <!-- Sum Insured Details -->
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top:1.2rem;">
                     <div style="flex:1 1 300px;">
                         <label for="property_damage" style="color:#2e3192; font-weight:600;">Property Damage</label>
-                        <input type="number" id="property_damage" name="property_damage" class="form-input"
-                            min="0" step="any" value="{{ $quote->property_damage }}"
-                            oninput="updateTotalSumInsured()">
+                        <input type="number" id="property_damage" name="property_damage" class="form-input" min="0"
+                            step="any" value="{{ $quote->property_damage }}" oninput="updateTotalSumInsured()">
                     </div>
                     <div style="flex:1 1 300px;">
                         <label for="business_interruption" style="color:#2e3192; font-weight:600;">Business
@@ -260,16 +260,134 @@
                     <!-- Hidden Fields (Sedant & Reinsurer) -->
                     <div id="conversionFields" style="display:none; margin-top:1rem; flex-wrap: wrap; gap: 1.5rem;">
                         <div style="flex:1 1 300px;">
-                            <label for="sedant_name" style="color:#2e3192; font-weight:600;">Cedant Name</label>
-                            <input type="text" name="cedant" id="sedant_name" class="form-input"
-                                placeholder="Enter Sedant Name">
+                            <label for="cedant_name" style="color:#2e3192; font-weight:600;">Cedant Name</label>
+                            <input type="text" name="cedant" id="cedant_name" class="form-input"
+                                placeholder="Enter Cedant Name" value="{{ $quote->cedant ?? '' }}">
                         </div>
 
                         <div style="flex:1 1 300px;">
-                            <label for="reinsurer_name" style="color:#2e3192; font-weight:600;">Reinsurer Name</label>
-                            <input type="text" name="reinsurer" id="reinsurer_name" class="form-input"
-                                placeholder="Enter Reinsurer Name">
+                            <label for="brokerage_percentage" style="color:#2e3192; font-weight:600;">Our Brokerage
+                                Percentage</label>
+                            <input type="number" name="brokerage_percentage" id="brokerage_percentage"
+                                class="form-input" placeholder="100" value="{{ $quote->brokerage_percentage ?? 100 }}"
+                                min="0" max="100" step="0.01">
                         </div>
+
+                        <div style="flex:1 1 100%; margin-top:1rem;">
+                            <label style="color:#2e3192; font-weight:600;">Reinsurer Names & Business Share</label>
+                            <div id="reinsurersWrapper">
+                                @php
+                                    $reinsurers = $quote->reinsurers
+                                        ? json_decode($quote->reinsurers, true)
+                                        : [['name' => '', 'percentage' => '']];
+                                @endphp
+                                @foreach ($reinsurers as $reinsurer)
+                                    <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem; align-items:center;">
+                                        <input type="text" name="reinsurer_names[]" class="form-input"
+                                            value="{{ is_array($reinsurer) ? $reinsurer['name'] : $reinsurer }}"
+                                            placeholder="Enter Reinsurer Name" style="flex:2;">
+                                        <input type="number" name="reinsurer_percentages[]" class="form-input"
+                                            value="{{ is_array($reinsurer) ? $reinsurer['percentage'] : '' }}"
+                                            placeholder="%" min="0" max="100" step="0.01"
+                                            style="flex:1;">
+                                        <span style="color:#2e3192; font-weight:500; font-size:0.9rem;">%</span>
+                                        <button type="button" onclick="removeReinsurer(this)"
+                                            style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div style="margin-top:0.5rem; display:flex; gap:1rem; align-items:center;">
+                                <button type="button" onclick="addReinsurer()"
+                                    style="background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.4rem 1.2rem; font-size:0.95rem; cursor:pointer;">
+                                    Add More Reinsurer
+                                </button>
+                                <div id="totalPercentage" style="color:#2e3192; font-weight:600; font-size:0.95rem;">
+                                    Total: <span id="totalPercent">0</span>%
+                                </div>
+                            </div>
+                            <input type="hidden" name="reinsurers_json" id="reinsurersJson">
+                        </div>
+
+
+                        <script>
+                            // Add more reinsurers with percentage
+                            function addReinsurer() {
+                                const wrapper = document.getElementById('reinsurersWrapper');
+                                const div = document.createElement('div');
+                                div.style.display = 'flex';
+                                div.style.gap = '0.5rem';
+                                div.style.marginBottom = '0.5rem';
+                                div.style.alignItems = 'center';
+                                div.innerHTML = `
+        <input type="text" name="reinsurer_names[]" class="form-input" placeholder="Enter Reinsurer Name" style="flex:2;">
+        <input type="number" name="reinsurer_percentages[]" class="form-input" placeholder="%" min="0" max="100" step="0.01" style="flex:1;" oninput="calculateTotal()">
+        <span style="color:#2e3192; font-weight:500; font-size:0.9rem;">%</span>
+        <button type="button" onclick="removeReinsurer(this)" style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
+    `;
+                                wrapper.appendChild(div);
+                                calculateTotal();
+                            }
+
+                            function removeReinsurer(btn) {
+                                btn.parentElement.remove();
+                                calculateTotal();
+                            }
+
+                            // Calculate total percentage
+                            function calculateTotal() {
+                                const percentages = document.getElementsByName('reinsurer_percentages[]');
+                                let total = 0;
+                                for (let i = 0; i < percentages.length; i++) {
+                                    const value = parseFloat(percentages[i].value) || 0;
+                                    total += value;
+                                }
+                                document.getElementById('totalPercent').textContent = total.toFixed(2);
+
+                                // Color coding for total
+                                const totalElement = document.getElementById('totalPercentage');
+                                if (total > 100) {
+                                    totalElement.style.color = '#e74c3c'; // Red if over 100%
+                                } else if (total === 100) {
+                                    totalElement.style.color = '#27ae60'; // Green if exactly 100%
+                                } else {
+                                    totalElement.style.color = '#2e3192'; // Blue if under 100%
+                                }
+                            }
+
+                            // Add event listeners to existing percentage inputs
+                            document.addEventListener('DOMContentLoaded', function() {
+                                // Add event listeners to existing inputs
+                                const existingPercentages = document.getElementsByName('reinsurer_percentages[]');
+                                for (let i = 0; i < existingPercentages.length; i++) {
+                                    existingPercentages[i].addEventListener('input', calculateTotal);
+                                }
+
+                                // Calculate initial total
+                                calculateTotal();
+
+                                // Prepare JSON on form submit
+                                document.querySelector('form').addEventListener('submit', function(e) {
+                                    const names = document.getElementsByName('reinsurer_names[]');
+                                    const percentages = document.getElementsByName('reinsurer_percentages[]');
+                                    let reinsurersArray = [];
+
+                                    for (let i = 0; i < names.length; i++) {
+                                        const name = names[i].value.trim();
+                                        const percentage = parseFloat(percentages[i].value) || 0;
+                                        if (name !== '') {
+                                            reinsurersArray.push({
+                                                name: name,
+                                                percentage: percentage
+                                            });
+                                        }
+                                    }
+
+                                    document.getElementById('reinsurersJson').value = JSON.stringify(reinsurersArray);
+                                });
+                            });
+
+                            // ...existing JavaScript functions...
+                        </script>
                     </div>
 
                 </div>
@@ -301,6 +419,7 @@
             background: #e3f0ff;
         }
     </style>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const select = document.getElementById('is_final_submit');
@@ -362,6 +481,30 @@
             const bi = parseFloat(document.getElementById('business_interruption').value) || 0;
             document.getElementById('total_sum_insured').value = pd + bi;
         }
+    </script>
+    <script>
+        // Add more reinsurers
+
+        // Show/hide conversion fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const isConvertedSelect = document.getElementById('is_final_submit');
+            const conversionFields = document.getElementById('conversionFields');
+
+            isConvertedSelect.addEventListener('change', function() {
+                if (this.value == '1') {
+                    conversionFields.style.display = 'flex';
+                } else {
+                    conversionFields.style.display = 'none';
+                }
+            });
+
+            // Set initial state
+            if (isConvertedSelect.value == '1') {
+                conversionFields.style.display = 'flex';
+            }
+        });
+
+        // ...existing JavaScript functions...
     </script>
     <script>
         // Download sample CSV

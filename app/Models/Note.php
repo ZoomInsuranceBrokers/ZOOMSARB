@@ -22,11 +22,14 @@ class Note extends Model
         'original_insured',
         'PPW',
         'particulars',
+        'reinsurer_name',
+        'total_premium'
     ];
 
     protected $casts = [
         'particulars' => 'array',
         'date' => 'date',
+        'total_premium' => 'decimal:2'
     ];
 
     public function quote()
