@@ -77,7 +77,7 @@ class AdminController extends Controller
 
     public function quotesList()
     {
-        $quotes = Quote::where('is_active', 1)->get();
+        $quotes = Quote::where('is_active', 1)->orderBy('id', 'desc')->get();
         return view('quotes.list', compact('quotes'));
     }
 

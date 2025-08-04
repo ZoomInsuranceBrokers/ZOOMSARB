@@ -41,6 +41,7 @@ class CreateQuotesTable extends Migration
             $table->string('reinsurer')->nullable();
             $table->string('placement_slip')->nullable();
             $table->string('brokerage_percentage')->nullable();
+            $table->string('reinsurer_country')->nullable();
             $table->timestamps();
         });
     }

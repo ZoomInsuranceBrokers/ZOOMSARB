@@ -273,6 +273,36 @@
                                 min="0" max="100" step="0.01">
                         </div>
 
+                        <div style="flex:1 1 300px;">
+                            <label for="reinsurer_country" style="color:#2e3192; font-weight:600;">Country of
+                                ReInsurer</label>
+                            <select name="reinsurer_country" id="reinsurer_country" class="form-input">
+                                <option value="">Select Country</option>
+                                <option value="India"
+                                    {{ ($quote->reinsurer_country ?? '') == 'India' ? 'selected' : '' }}>India</option>
+                                <option value="India- GIFT City, Gujarat"
+                                    {{ ($quote->reinsurer_country ?? '') == 'India- GIFT City, Gujarat' ? 'selected' : '' }}>
+                                    India- GIFT City, Gujarat</option>
+                                <option value="Thailand"
+                                    {{ ($quote->reinsurer_country ?? '') == 'Thailand' ? 'selected' : '' }}>Thailand
+                                </option>
+                                <option value="Hongkong"
+                                    {{ ($quote->reinsurer_country ?? '') == 'Hongkong' ? 'selected' : '' }}>Hongkong
+                                </option>
+                                <option value="Singapore"
+                                    {{ ($quote->reinsurer_country ?? '') == 'Singapore' ? 'selected' : '' }}>Singapore
+                                </option>
+                                <option value="UAE" {{ ($quote->reinsurer_country ?? '') == 'UAE' ? 'selected' : '' }}>
+                                    UAE</option>
+                                <option value="Malaysia"
+                                    {{ ($quote->reinsurer_country ?? '') == 'Malaysia' ? 'selected' : '' }}>Malaysia
+                                </option>
+                                <option value="Germany"
+                                    {{ ($quote->reinsurer_country ?? '') == 'Germany' ? 'selected' : '' }}>Germany</option>
+                                <option value="UK" {{ ($quote->reinsurer_country ?? '') == 'UK' ? 'selected' : '' }}>
+                                    UK</option>
+                            </select>
+                        </div>
                         <div style="flex:1 1 100%; margin-top:1rem;">
                             <label style="color:#2e3192; font-weight:600;">Reinsurer Names & Business Share</label>
                             <div id="reinsurersWrapper">

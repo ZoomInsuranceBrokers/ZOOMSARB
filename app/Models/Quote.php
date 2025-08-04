@@ -45,6 +45,7 @@ class Quote extends Model
         'cedant',
         'reinsurer',
         'placemnet_slip',
+        'reinsurer_country',
         'brokerage_percentage'
     ];
 

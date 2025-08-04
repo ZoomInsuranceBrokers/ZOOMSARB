@@ -156,10 +156,10 @@
                 <tr>
                     <td class="label">Policy Period:</td>
                     <td class="value">
-                       {{ $quote->policy_period ?? '' }}                      
+                       {{ $quote->policy_period ?? '' }}
                     </td>
                 </tr>
-             
+
                 {{-- @if (!empty($quote->cedant))
                     <tr>
                         <td class="label">Cedant Name:</td>
@@ -194,15 +194,15 @@
                 </tr>
                 <tr>
                     <td class="label">Property Damage:</td>
-                    <td class="value">INR. {{ $quote->property_damage ?? '' }}</td>
+                    <td class="value">INR. {{ number_format((float)($quote->property_damage ?? 0), 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Business Interruption:</td>
-                    <td class="value">INR. {{ $quote->business_interruption ?? '' }}</td>
+                    <td class="value">INR. {{ number_format((float)($quote->business_interruption ?? 0), 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Total Sum Insured:</td>
-                    <td class="value">INR, {{ $quote->property_damage + $quote->business_interruption ?? '' }}</td>
+                    <td class="value">INR. {{ number_format((float)($quote->property_damage ?? 0) + (float)($quote->business_interruption ?? 0), 2) }}</td>
                 </tr>
                 <tr>
                     <td class="label">Coverage:</td>
@@ -249,12 +249,17 @@
                         @endif
                     </td>
                 </tr>
-               
+
                 <tr>
                     <td class="label">Premium:</td>
                     <td class="value">{{ $quote->premium ?? '' }}</td>
                 </tr>
+                <tr>
+                    <td class="label">Support:</td>
+                    <td class="value">{{ $quote->support ?? '' }}</td>
+                </tr>
             </table>
+
         </div>
         <div>
             {!! $quote->policy_wording ?? '' !!}

@@ -223,7 +223,7 @@
             </tr>
             @if (!empty($note->PPW))
                 <tr>
-                    <td class="label">PPW</td>
+                    <td class="label">Premium Payment</td>
                     <td class="value">{{ $note->PPW }}</td>
                 </tr>
             @endif
