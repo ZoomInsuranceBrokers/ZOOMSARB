@@ -167,6 +167,11 @@
             font-size: 12px;
             line-height: 1.5;
         }
+        .signature-section {
+            margin-top: 50px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 
@@ -189,12 +194,9 @@
                 </td>
             </tr>
         </table>
-        <div class="to-section">
+          <div class="to-section" style="width: 60%;">
             <span class="bold">To,</span><br>
-            {{ $note->to }}<br>
-            @if (isset($quote))
-                {{ $quote->address ?? '' }}<br>
-            @endif
+            {!! nl2br(e($note->to)) !!}
         </div>
         <table class="details-table">
             <tr>
@@ -220,6 +222,29 @@
             <tr>
                 <td class="label">Policy Type</td>
                 <td class="value">{{ $quote->policy_name ?? '' }}</td>
+            </tr>
+            <tr>
+                <td class="label">Policy Period</td>
+                <td class="value">
+                    @php
+                        $formattedPeriod = '';
+                        if (!empty($quote->policy_period)) {
+                            $dates = explode(' - ', $quote->policy_period);
+                            if (count($dates) === 2) {
+                                try {
+                                    $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($dates[0]))->format('F jS, Y');
+                                    $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($dates[1]))->format('F jS, Y');
+                                    $formattedPeriod = $startDate . ' to ' . $endDate;
+                                } catch (\Exception $e) {
+                                    $formattedPeriod = $quote->policy_period;
+                                }
+                            } else {
+                                $formattedPeriod = $quote->policy_period;
+                            }
+                        }
+                    @endphp
+                    {{ $formattedPeriod }}
+                </td>
             </tr>
             @if (!empty($note->PPW))
                 <tr>
@@ -319,6 +344,13 @@
         </div>
         <div class="amount-numbers">
             Total Amount Due: INR {{ number_format($grandTotal, 2) }}
+        </div>
+        <div class="signature-section">
+            <span class="bold">For: Zoom Insurance Brokers Pvt. Ltd.</span>
+            <div style="height: 120px;">
+                {{-- This space is for the digital signature image --}}
+            </div>
+            <span class="bold">Authorized Signatory</span>
         </div>
         @if (isset($bankingDetail) && $bankingDetail)
             <div class="banking-details">
