@@ -177,6 +177,16 @@
                             <span id="ri_brokerage_label">Less: RI brokerage @ 0%</span>
                             <span id="display_ri_brokerage" style="font-weight:600; color:#e74c3c;">0.00</span>
                         </div>
+                        @if ($quote->reinsurer_country == "India")
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span id="gst_on_ri_brokerage_label">Add: GST on RI brokerage @ 18%</span>
+                            <span id="display_gst_on_ri_brokerage" style="font-weight:600; color:#e74c3c;">0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span id="tds_on_ri_brokerage_label">Less: TDS on RI brokerage @ 10%</span>
+                            <span id="display_tds_on_ri_brokerage" style="font-weight:600; color:#e74c3c;">0.00</span>
+                        </div>
+                        @endif
 
                         <hr style="margin:1rem 0; border:1px solid #dee2e6;">
 
@@ -276,8 +286,15 @@
             const cedingCommission = (reinsurerShare * cedingCommissionPercent) / 100;
             const riBrokerage = (reinsurerShare * riBrokeragePercent) / 100;
 
-            // Calculate total due
-            const totalDue = reinsurerShare - cedingCommission - riBrokerage;
+            // GST and TDS only if Indian reinsurer
+            let gstOnRiBrokerage = 0;
+            let tdsOnRiBrokerage = 0;
+            let totalDue = reinsurerShare - cedingCommission - riBrokerage;
+            if ('{{ $quote->reinsurer_country }}' === 'India') {
+                gstOnRiBrokerage = riBrokerage * 0.18;
+                tdsOnRiBrokerage = riBrokerage * 0.10;
+                totalDue = reinsurerShare - cedingCommission - riBrokerage + gstOnRiBrokerage - tdsOnRiBrokerage;
+            }
 
             // Update display
             document.getElementById('display_total_premium').textContent = formatCurrency(totalPremium);
@@ -291,6 +308,12 @@
                 `Less: Ceding Commission @ ${cedingCommissionPercent}%`;
             document.getElementById('ri_brokerage_label').textContent =
                 `Less: RI brokerage @ ${riBrokeragePercent}%`;
+
+            // GST & TDS display if Indian reinsurer
+            if ('{{ $quote->reinsurer_country }}' === 'India') {
+                document.getElementById('display_gst_on_ri_brokerage').textContent = formatCurrency(gstOnRiBrokerage);
+                document.getElementById('display_tds_on_ri_brokerage').textContent = formatCurrency(tdsOnRiBrokerage);
+            }
         }
 
         function resetCalculations() {
@@ -303,6 +326,8 @@
             document.getElementById('total_due_label').textContent = "Total due to Reinsurer";
             document.getElementById('ceding_commission_label').textContent = "Less: Ceding Commission @ 0%";
             document.getElementById('ri_brokerage_label').textContent = "Less: RI brokerage @ 0%";
+            if (document.getElementById('display_gst_on_ri_brokerage')) document.getElementById('display_gst_on_ri_brokerage').textContent = '0.00';
+            if (document.getElementById('display_tds_on_ri_brokerage')) document.getElementById('display_tds_on_ri_brokerage').textContent = '0.00';
         }
 
         function formatCurrency(amount) {
@@ -331,16 +356,23 @@
             const reinsurerShare = (totalPremium * selectedReinsurerData.percentage) / 100;
             const cedingCommission = (reinsurerShare * cedingCommissionPercent) / 100;
             const riBrokerage = (reinsurerShare * riBrokeragePercent) / 100;
-            const totalDue = reinsurerShare - cedingCommission - riBrokerage;
-
-            // Prepare particulars object with percentage labels
+            let gstOnRiBrokerage = 0;
+            let tdsOnRiBrokerage = 0;
+            let totalDue = reinsurerShare - cedingCommission - riBrokerage;
             let particulars = {
                 'Total premium': totalPremium,
                 [`${selectedReinsurerData.name}'s share @ ${selectedReinsurerData.percentage}%`]: reinsurerShare,
                 [`Less: Ceding Commission @ ${cedingCommissionPercent}%`]: -cedingCommission,
-                [`Less: RI brokerage @ ${riBrokeragePercent}%`]: -riBrokerage,
-                [`Total due to ${selectedReinsurerData.name}`]: totalDue
+                [`Less: RI brokerage @ ${riBrokeragePercent}%`]: -riBrokerage
             };
+            if ('{{ $quote->reinsurer_country }}' === 'India') {
+                gstOnRiBrokerage = riBrokerage * 0.18;
+                tdsOnRiBrokerage = riBrokerage * 0.10;
+                particulars['Add: GST on RI brokerage @ 18%'] = -gstOnRiBrokerage;
+                particulars['Less: TDS on RI brokerage @ 10%'] = -tdsOnRiBrokerage;
+                totalDue = reinsurerShare - cedingCommission - riBrokerage - gstOnRiBrokerage - tdsOnRiBrokerage;
+            }
+            particulars[`Total due to ${selectedReinsurerData.name}`] = totalDue;
 
             document.getElementById('particularsJson').value = JSON.stringify(particulars);
             return true;
