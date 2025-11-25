@@ -21,6 +21,7 @@ class CreateNotesTable extends Migration
             $table->string('Reinsurer')->nullable();
             $table->string('original_insured')->nullable();
             $table->string('PPW')->nullable();
+            $table->string('signed_note')->nullable();
             $table->json('particulars')->nullable();
             $table->timestamps();
 

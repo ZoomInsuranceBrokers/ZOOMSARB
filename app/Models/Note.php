@@ -23,7 +23,8 @@ class Note extends Model
         'PPW',
         'particulars',
         'reinsurer_name',
-        'total_premium'
+        'total_premium',
+        'signed_note'
     ];
 
     protected $casts = [

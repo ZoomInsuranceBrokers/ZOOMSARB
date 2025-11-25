@@ -9,6 +9,31 @@
             <h2 style="text-align:center; color:#2e3192; font-weight:700; margin-bottom:1.5rem;">Add New Quote Slip</h2>
             <form method="POST" action="{{ route('quotes.store') }}">
                 @csrf
+                <script>
+                    function updateCurrencyLabels() {
+                        var currencySelect = document.getElementById('currency');
+                        var selected = currencySelect.options[currencySelect.selectedIndex].text;
+                        var currencyLabels = document.querySelectorAll('.currency-label');
+                        var placeholders = {
+                            'INR': 'INR',
+                            'Dollar': 'Dollar',
+                            'Euro': 'Euro'
+                        };
+                        currencyLabels.forEach(function(label) {
+                            label.textContent = placeholders[selected];
+                        });
+                        // Update placeholders for number inputs
+                        var numberInputs = document.querySelectorAll('input[type="number"]');
+                        numberInputs.forEach(function(input) {
+                            if (input.placeholder) {
+                                input.placeholder = input.placeholder.replace(/Rupee|Dollar|Euro/, placeholders[selected]);
+                            }
+                        });
+                    }
+                    document.addEventListener('DOMContentLoaded', function() {
+                        updateCurrencyLabels();
+                    });
+                </script>
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem;">
                     <div style="flex:1 1 400px;">
                         <label for="insured_name" style="color:#2e3192; font-weight:600;">Insured Name</label>
@@ -24,9 +49,12 @@
                         <label for="policy_name" style="color:#2e3192; font-weight:600;">Policy Name</label>
                         <select id="policy_name" name="policy_name" class="form-input">
                             <option value="">Select Policy</option>
-                            <option value="Terrorism and Sabotage and Terrorism Liability Insurance">Terrorism and Sabotage and Terrorism Liability Insurance</option>
+                            <option value="Terrorism and Sabotage and Terrorism Liability Insurance">Terrorism and Sabotage
+                                and Terrorism Liability Insurance</option>
                             <option value="Professional Indemnity">Professional Indemnity Policy</option>
                             <option value="Cyber Insurance">Cyber Insurance</option>
+                            <option value="Political Violence Insurance">Political Violence Insurance</option>
+
                         </select>
                     </div>
                     <div style="flex:1 1 400px;">
@@ -44,9 +72,19 @@
                             <label for="policy_period_tba" style="color:#2e3192; font-weight:500; margin-left:4px;">To Be
                                 Advised</label>
                         </div>
+
                     </div>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top:1.2rem;">
+                    <!-- Currency Selection -->
+                    <div style="flex:1 1 400px;">
+                        <label for="currency" style="color:#2e3192; font-weight:600;">Currency Type</label>
+                        <select id="currency" name="currency_type" class="form-input" onchange="updateCurrencyLabels()">
+                            <option value="INR">INR</option>
+                            {{-- <option value="USD">Dollar</option>
+                            <option value="EUR">Euro</option> --}}
+                        </select>
+                    </div>
                     <div style="flex:1 1 400px;">
                         <label for="occupancy" style="color:#2e3192; font-weight:600;">Occupancy</label>
                         <input type="text" id="occupancy" name="occupancy" class="form-input">
@@ -57,53 +95,64 @@
                     </div>
                 </div>
                 <!-- Risk Locations (multiple rows) -->
-
-                {{-- <div style="margin-top:1.2rem;">
+                <div style="margin-top:1.2rem;">
                     <label style="color:#2e3192; font-weight:600;">Risk Locations</label>
-                    <div style="margin-bottom:0.7rem; margin-top:1.2rem;">
-                        <button type="button" onclick="downloadSampleCSV()"
-                            style="background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.3rem 1.1rem; font-size:0.95rem; cursor:pointer;">
-                            Download Sample CSV
-                        </button>
-                        <input type="file" id="riskLocationsCSV" accept=".csv"
-                            style="margin-left:1rem; display:inline-block;" onchange="handleCSVUpload(this)"
-                            class="form-input">
-                        <label for="riskLocationsCSV"
-                            style="color:#2e3192; font-weight:500; margin-left:6px; cursor:pointer;">Upload CSV</label>
+                    <div style="margin-bottom:0.7rem;">
+                        <input type="checkbox" id="riskLocationAnnexure" name="risk_location_as_per_annexure" value="1"
+                            onchange="toggleRiskLocationAnnexure()">
+                        <label for="riskLocationAnnexure" style="color:#2e3192; font-weight:500; margin-left:4px;">As per
+                            Annexure</label>
+                    </div>
+                    <!-- Field Headers -->
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem; padding:0.5rem; background:#e3f0ff; border-radius:6px; font-weight:600; color:#2e3192; font-size:0.9rem;">
+                        <div style="flex:1 1 200px;">Risk Location</div>
+                        <div style="flex:1 1 150px;">Property Damage</div>
+                        <div style="flex:1 1 150px;">Business Interruption</div>
+                        <div style="flex:1 1 150px;">Total Sum Insured</div>
+                        <div style="width:40px;">Action</div>
                     </div>
                     <div id="riskLocationsWrapper">
-                        <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-                            <input type="text" name="risk_location[]" class="form-input"
-                                placeholder="Enter risk location" required>
-                            <input type="number" name="risk_sum_insured[]" class="form-input" placeholder="Sum Insured"
-                                min="0" step="any">
+                        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; padding:1rem; border:1px solid #e3f0ff; border-radius:8px; background:#f7faff;">
+                            <input type="text" name="risk_location[]" class="form-input" style="flex:1 1 200px;"
+                                placeholder="Enter risk location">
+                            <input type="number" name="risk_property_damage[]" class="form-input" style="flex:1 1 150px;" placeholder="Property Damage"
+                                min="0" step="any" oninput="calculateRiskTotal(this)">
+                            <input type="number" name="risk_business_interruption[]" class="form-input" style="flex:1 1 150px;" placeholder="Business Interruption"
+                                min="0" step="any" oninput="calculateRiskTotal(this)">
+                            <input type="number" name="risk_total_sum[]" class="form-input" style="flex:1 1 150px;" placeholder="Total Sum Insured"
+                                readonly style="background:#e3f0ff;">
                             <button type="button" onclick="removeRiskLocation(this)"
                                 style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
                         </div>
                     </div>
                     <button type="button" onclick="addRiskLocation()"
-                        style="margin-top:0.5rem; background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.4rem 1.2rem; font-size:0.95rem; cursor:pointer;">
-                        Add More
-                    </button>
+                        style="margin-top:0.5rem; background:#2e3192; color:#fff; border:none; border-radius:6px; padding:0.4rem 1.2rem; font-size:0.95rem; cursor:pointer;">Add
+                        More</button>
                     <input type="hidden" id="riskLocationsJson" name="risk_locations_json">
-                </div> --}}
+                    <input type="hidden" id="riskLocationAnnexureHidden" name="risk_location_as_per_annexure"
+                        value="0">
+                </div>
                 <!-- Sum Insured Details -->
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top:1.2rem;">
                     <div style="flex:1 1 300px;">
-                        <label for="property_damage" style="color:#2e3192; font-weight:600;">Property Damage</label>
+                        <label for="property_damage" style="color:#2e3192; font-weight:600;">Property Damage (<span
+                                class="currency-label">Rupee</span>)</label>
                         <input type="number" id="property_damage" name="property_damage" class="form-input"
-                            min="0" step="any" oninput="updateTotalSumInsured()">
+                            min="0" step="any" oninput="updateTotalSumInsured()"
+                            placeholder="Enter amount in Rupee">
                     </div>
                     <div style="flex:1 1 300px;">
-                        <label for="business_interruption" style="color:#2e3192; font-weight:600;">Business
-                            Interruption</label>
+                        <label for="business_interruption" style="color:#2e3192; font-weight:600;">Business Interruption
+                            (<span class="currency-label">Rupee</span>)</label>
                         <input type="number" id="business_interruption" name="business_interruption" class="form-input"
-                            min="0" step="any" oninput="updateTotalSumInsured()">
+                            min="0" step="any" oninput="updateTotalSumInsured()"
+                            placeholder="Enter amount in Rupee">
                     </div>
                     <div style="flex:1 1 300px;">
-                        <label for="total_sum_insured" style="color:#2e3192; font-weight:600;">Total Sum Insured</label>
+                        <label for="total_sum_insured" style="color:#2e3192; font-weight:600;">Total Sum Insured (<span
+                                class="currency-label">Rupee</span>)</label>
                         <input type="number" id="total_sum_insured" name="total_sum_insured" class="form-input"
-                            readonly style="background:#e3f0ff;">
+                            readonly style="background:#e3f0ff;" placeholder="Amount in Rupee">
                     </div>
                 </div>
                 <div style="margin-top:1.2rem;">
@@ -241,11 +290,29 @@
                 end.disabled = false;
             }
         }
+
+        function toggleRiskLocationAnnexure() {
+            var annexureCheckbox = document.getElementById('riskLocationAnnexure');
+            var wrapper = document.getElementById('riskLocationsWrapper');
+            var hidden = document.getElementById('riskLocationAnnexureHidden');
+            if (annexureCheckbox.checked) {
+                wrapper.style.display = 'none';
+                hidden.value = '1';
+                // Clear all risk location fields
+                var inputs = wrapper.querySelectorAll('input');
+                inputs.forEach(function(input) {
+                    input.value = '';
+                });
+            } else {
+                wrapper.style.display = '';
+                hidden.value = '0';
+            }
+        }
     </script>
     <script>
         // Download sample CSV
         function downloadSampleCSV() {
-            const csv = "Risk Location,Sum Insured\nLocation 1,1000000\nLocation 2,2000000";
+            const csv = "Risk Location,Property Damage,Business Interruption,Total Sum Insured\nLocation 1,800000,200000,1000000\nLocation 2,1500000,500000,2000000";
             const blob = new Blob([csv], {
                 type: 'text/csv'
             });
@@ -274,14 +341,24 @@
                 wrapper.innerHTML = '';
                 for (let i = start; i < lines.length; i++) {
                     const parts = lines[i].split(',');
-                    if (parts.length >= 2) {
+                    if (parts.length >= 3) {
                         const div = document.createElement('div');
                         div.style.display = 'flex';
+                        div.style.flexWrap = 'wrap';
                         div.style.gap = '0.5rem';
-                        div.style.marginBottom = '0.5rem';
+                        div.style.marginBottom = '1rem';
+                        div.style.padding = '1rem';
+                        div.style.border = '1px solid #e3f0ff';
+                        div.style.borderRadius = '8px';
+                        div.style.background = '#f7faff';
+                        const propertyDamage = parseFloat(parts[1].trim()) || 0;
+                        const businessInterruption = parseFloat(parts[2].trim()) || 0;
+                        const total = propertyDamage + businessInterruption;
                         div.innerHTML = `
-                    <input type="text" name="risk_location[]" class="form-input" placeholder="Enter risk location" value="${parts[0].trim()}" required>
-                    <input type="number" name="risk_sum_insured[]" class="form-input" placeholder="Sum Insured" min="0" step="any" value="${parts[1].trim()}" required>
+                    <input type="text" name="risk_location[]" class="form-input" style="flex:1 1 200px;" placeholder="Enter risk location" value="${parts[0].trim()}" required>
+                    <input type="number" name="risk_property_damage[]" class="form-input" style="flex:1 1 150px;" placeholder="Property Damage" min="0" step="any" value="${propertyDamage}" oninput="calculateRiskTotal(this)" required>
+                    <input type="number" name="risk_business_interruption[]" class="form-input" style="flex:1 1 150px;" placeholder="Business Interruption" min="0" step="any" value="${businessInterruption}" oninput="calculateRiskTotal(this)" required>
+                    <input type="number" name="risk_total_sum[]" class="form-input" style="flex:1 1 150px;" placeholder="Total Sum Insured" value="${total}" readonly style="background:#e3f0ff;">
                     <button type="button" onclick="removeRiskLocation(this)" style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
                 `;
                         wrapper.appendChild(div);
@@ -344,11 +421,18 @@
             const wrapper = document.getElementById('riskLocationsWrapper');
             const div = document.createElement('div');
             div.style.display = 'flex';
+            div.style.flexWrap = 'wrap';
             div.style.gap = '0.5rem';
-            div.style.marginBottom = '0.5rem';
+            div.style.marginBottom = '1rem';
+            div.style.padding = '1rem';
+            div.style.border = '1px solid #e3f0ff';
+            div.style.borderRadius = '8px';
+            div.style.background = '#f7faff';
             div.innerHTML = `
-        <input type="text" name="risk_location[]" class="form-input" placeholder="Enter risk location" required>
-        <input type="number" name="risk_sum_insured[]" class="form-input" placeholder="Sum Insured" min="0" step="any" required>
+        <input type="text" name="risk_location[]" class="form-input" style="flex:1 1 200px;" placeholder="Enter risk location" required>
+        <input type="number" name="risk_property_damage[]" class="form-input" style="flex:1 1 150px;" placeholder="Property Damage" min="0" step="any" oninput="calculateRiskTotal(this)" required>
+        <input type="number" name="risk_business_interruption[]" class="form-input" style="flex:1 1 150px;" placeholder="Business Interruption" min="0" step="any" oninput="calculateRiskTotal(this)" required>
+        <input type="number" name="risk_total_sum[]" class="form-input" style="flex:1 1 150px;" placeholder="Total Sum Insured" readonly style="background:#e3f0ff;">
         <button type="button" onclick="removeRiskLocation(this)" style="background:#e74c3c; color:#fff; border:none; border-radius:6px; padding:0.3rem 0.8rem; font-size:1rem; cursor:pointer;">&times;</button>
     `;
             wrapper.appendChild(div);
@@ -356,6 +440,15 @@
 
         function removeRiskLocation(btn) {
             btn.parentElement.remove();
+        }
+
+        // Calculate total sum for each risk location
+        function calculateRiskTotal(input) {
+            const container = input.closest('div');
+            const propertyDamage = parseFloat(container.querySelector('input[name="risk_property_damage[]"]').value) || 0;
+            const businessInterruption = parseFloat(container.querySelector('input[name="risk_business_interruption[]"]').value) || 0;
+            const totalField = container.querySelector('input[name="risk_total_sum[]"]');
+            totalField.value = propertyDamage + businessInterruption;
         }
 
         // On form submit, build JSON and put in hidden input
@@ -370,18 +463,25 @@
                 }
 
                 const locations = document.getElementsByName('risk_location[]');
-                const sums = document.getElementsByName('risk_sum_insured[]');
+                const propertyDamages = document.getElementsByName('risk_property_damage[]');
+                const businessInterruptions = document.getElementsByName('risk_business_interruption[]');
+                const totalSums = document.getElementsByName('risk_total_sum[]');
                 const hidden = document.getElementById('riskLocationsJson');
 
                 let arr = [];
 
                 for (let i = 0; i < locations.length; i++) {
                     const loc = locations[i].value.trim();
-                    const sum = sums[i].value.trim();
+                    const propDamage = parseFloat(propertyDamages[i].value) || 0;
+                    const bizInterruption = parseFloat(businessInterruptions[i].value) || 0;
+                    const total = parseFloat(totalSums[i].value) || 0;
+                    
                     if (loc !== '') {
                         arr.push({
                             location: loc,
-                            sum_insured: sum
+                            property_damage: propDamage,
+                            business_interruption: bizInterruption,
+                            total_sum_insured: total
                         });
                     }
                 }
@@ -389,6 +489,36 @@
                 console.log("Final JSON:", arr);
                 if (hidden) {
                     hidden.value = arr.length ? JSON.stringify(arr) : '';
+                }
+
+                var annexureCheckbox = document.getElementById('riskLocationAnnexure');
+                var wrapper = document.getElementById('riskLocationsWrapper');
+                var hiddenAnnexure = document.getElementById('riskLocationAnnexureHidden');
+                if (annexureCheckbox && annexureCheckbox.checked) {
+                    // Hide risk location fields and send null
+                    var locations = wrapper.querySelectorAll('input[name="risk_location[]"]');
+                    var propertyDamages = wrapper.querySelectorAll('input[name="risk_property_damage[]"]');
+                    var businessInterruptions = wrapper.querySelectorAll('input[name="risk_business_interruption[]"]');
+                    var totalSums = wrapper.querySelectorAll('input[name="risk_total_sum[]"]');
+                    
+                    locations.forEach(function(input) {
+                        input.value = '';
+                        input.removeAttribute('required');
+                    });
+                    propertyDamages.forEach(function(input) {
+                        input.value = '';
+                        input.removeAttribute('required');
+                    });
+                    businessInterruptions.forEach(function(input) {
+                        input.value = '';
+                        input.removeAttribute('required');
+                    });
+                    totalSums.forEach(function(input) {
+                        input.value = '';
+                    });
+                    hiddenAnnexure.value = '1';
+                } else {
+                    hiddenAnnexure.value = '0';
                 }
             });
         });

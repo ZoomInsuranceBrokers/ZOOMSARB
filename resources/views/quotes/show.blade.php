@@ -5,7 +5,13 @@
 @section('content')
     <div style="max-width: 900px; margin: 0 auto;">
         <div
-            style="background: linear-gradient(135deg, #e3f0ff 0%, #f7faff 100%); border-radius: 18px; box-shadow: 0 2px 16px #2e319222; padding: 2.5rem 2rem; margin-bottom: 2rem;">
+            style="background: linear-gradient(135deg, #e3f0ff 0%, #f7faff 100%); border-radius: 18px; box-shadow: 0 2px 16px #2e319222; padding: 2.5rem 2rem; margin-bottom: 2rem; position: relative;">
+
+            @if($quote->is_final_submit == 1)
+            <div style="position: absolute; top: 2rem; right: 2rem; display: flex; gap: 1rem;">
+                <a href="{{ route('quotes.placement-slip', $quote->id) }}" class="btn-slip" style="background:#2e3192; color:#fff; border:none; border-radius:8px; padding:0.6rem 1.4rem; font-size:1rem; font-weight:600; text-decoration:none; box-shadow:0 2px 8px #2e319222;">Add Placement Slip/Signed Slip</a>
+            </div>
+            @endif
             <h2 style="color:#2e3192; font-weight:700; margin-bottom:1.5rem;">Quote Details</h2>
             <table style="width:100%; border-collapse:separate; border-spacing:0 0.7rem;">
                 <tr>
@@ -36,11 +42,32 @@
                     <td style="font-weight:600; color:#2e3192;">Risk Locations</td>
                     <td>
                         @if ($quote->risk_locations)
-                            <ul style="margin:0; padding-left:1.2em;">
-                                @foreach (json_decode($quote->risk_locations, true) as $location => $sum)
-                                    <li><strong>{{ $location }}</strong>: Sum Insured: {{ number_format($sum) }}</li>
-                                @endforeach
-                            </ul>
+                            @php
+                                $riskLocations = json_decode($quote->risk_locations, true);
+                            @endphp
+                            
+                            @if($quote->risk_location_as_per_annexure == 1)
+                                <span style="font-style: italic; color: #666;">As Per Annexure</span>
+                            @elseif(is_array($riskLocations) && count($riskLocations) > 0)
+                                <div style="background:#fff; border-radius:8px; padding:1rem; border:1px solid #e3f0ff;">
+                                    @foreach ($riskLocations as $index => $location)
+                                        @if(isset($location['location']))
+                                            <div style="margin-bottom:1rem; padding:0.8rem; background:#f7faff; border-radius:6px;">
+                                                <div style="font-weight:600; color:#2e3192; margin-bottom:0.5rem;">{{ $location['location'] }}</div>
+                                                <div style="display:flex; gap:1rem; flex-wrap:wrap; font-size:0.9rem;">
+                                                    <span><strong>Property Damage:</strong> {{ number_format((float)($location['property_damage'] ?? 0)) }}</span>
+                                                    <span><strong>Business Interruption:</strong> {{ number_format((float)($location['business_interruption'] ?? 0)) }}</span>
+                                                    <span style="color:#2e3192; font-weight:600;"><strong>Total:</strong> {{ number_format((float)($location['total_sum_insured'] ?? 0)) }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <span style="color: #999; font-style: italic;">No risk locations specified</span>
+                            @endif
+                        @else
+                            <span style="color: #999; font-style: italic;">No risk locations specified</span>
                         @endif
                     </td>
                 </tr>

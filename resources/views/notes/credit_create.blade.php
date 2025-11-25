@@ -179,11 +179,11 @@
                         </div>
                         @if ($quote->reinsurer_country == "India")
                         <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-                            <span id="gst_on_ri_brokerage_label">Add: GST on RI brokerage @ 18%</span>
+                            <span id="gst_on_ri_brokerage_label">Less: GST on RI brokerage @ 18%</span>
                             <span id="display_gst_on_ri_brokerage" style="font-weight:600; color:#e74c3c;">0.00</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-                            <span id="tds_on_ri_brokerage_label">Less: TDS on RI brokerage @ 10%</span>
+                            <span id="tds_on_ri_brokerage_label">Add: TDS on RI brokerage @ 10%</span>
                             <span id="display_tds_on_ri_brokerage" style="font-weight:600; color:#e74c3c;">0.00</span>
                         </div>
                         @endif
@@ -289,12 +289,12 @@
             // GST and TDS only if Indian reinsurer
             let gstOnRiBrokerage = 0;
             let tdsOnRiBrokerage = 0;
-            let totalDue = reinsurerShare - cedingCommission - riBrokerage;
-            if ('{{ $quote->reinsurer_country }}' === 'India') {
-                gstOnRiBrokerage = riBrokerage * 0.18;
-                tdsOnRiBrokerage = riBrokerage * 0.10;
-                totalDue = reinsurerShare - cedingCommission - riBrokerage + gstOnRiBrokerage - tdsOnRiBrokerage;
-            }
+                let totalDue = reinsurerShare - cedingCommission - riBrokerage;
+                if ('{{ $quote->reinsurer_country }}' === 'India') {
+                    gstOnRiBrokerage = riBrokerage * 0.18;
+                    tdsOnRiBrokerage = riBrokerage * 0.10;
+                    totalDue = reinsurerShare - cedingCommission - riBrokerage - gstOnRiBrokerage + tdsOnRiBrokerage;
+                }
 
             // Update display
             document.getElementById('display_total_premium').textContent = formatCurrency(totalPremium);
@@ -369,8 +369,8 @@
                 gstOnRiBrokerage = riBrokerage * 0.18;
                 tdsOnRiBrokerage = riBrokerage * 0.10;
                 particulars['Add: GST on RI brokerage @ 18%'] = -gstOnRiBrokerage;
-                particulars['Less: TDS on RI brokerage @ 10%'] = -tdsOnRiBrokerage;
-                totalDue = reinsurerShare - cedingCommission - riBrokerage - gstOnRiBrokerage - tdsOnRiBrokerage;
+                particulars['Less: TDS on RI brokerage @ 10%'] = tdsOnRiBrokerage;
+                totalDue = reinsurerShare - cedingCommission - riBrokerage - gstOnRiBrokerage + tdsOnRiBrokerage;
             }
             particulars[`Total due to ${selectedReinsurerData.name}`] = totalDue;
 

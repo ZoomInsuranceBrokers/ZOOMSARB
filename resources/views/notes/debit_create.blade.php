@@ -32,6 +32,9 @@
                         <label for="to" class="note-label">To (Client Name)</label>
                         <select id="to" name="to" class="form-input" required>
                             <option value="">Select Company</option>
+                             <option
+                            value="Go Digit General Insurance Limited&#x0A;Ananta One ,1st floor, Opposite Shivaji Nagar Metro Stand ,Near Dalvi Hospital, Narveer Tanaji Wadi, Shivajinagar,Pune, Maharashtra 411005">
+                            Go Digit General Insurance Limited</option>
                             <option
                                 value="Acko General Insurance Limited&#x0A;2nd Floor, #36/5, Hustlehub One East, Somasandrapalya, 27th Main road, Sector 2, HSR Layout, Bengaluru, Karnataka - 560102">
                                 Acko General Insurance Limited</option>

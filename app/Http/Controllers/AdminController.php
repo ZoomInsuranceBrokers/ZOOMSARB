@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Quote;
 use App\Models\Note;
+use App\Models\PlacementSlip;
 use App\Models\BankingDetail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AdminController extends Controller
@@ -33,16 +35,25 @@ class AdminController extends Controller
                 $data['policy_period'] = null;
             }
 
-            // Handle Risk Locations as JSON (location + sum insured pairs)
-            if (!empty($data['risk_location']) && !empty($data['risk_sum_insured'])) {
+            // Handle Risk Locations as JSON (location + property damage + business interruption + total)
+            if (!empty($data['risk_location'])) {
                 $riskLocations = [];
                 foreach ($data['risk_location'] as $index => $location) {
                     $location = trim($location);
-                    $sum = isset($data['risk_sum_insured'][$index]) ? trim($data['risk_sum_insured'][$index]) : null;
-                    if ($location !== '' && $sum !== null) {
-                        $riskLocations[$location] = is_numeric($sum) ? (float)$sum : $sum;
+                    $propertyDamage = isset($data['risk_property_damage'][$index]) ? (float)trim($data['risk_property_damage'][$index]) : 0;
+                    $businessInterruption = isset($data['risk_business_interruption'][$index]) ? (float)trim($data['risk_business_interruption'][$index]) : 0;
+                    $totalSum = isset($data['risk_total_sum'][$index]) ? (float)trim($data['risk_total_sum'][$index]) : 0;
+
+                    if ($location !== '') {
+                        $riskLocations[] = [
+                            'location' => $location,
+                            'property_damage' => $propertyDamage,
+                            'business_interruption' => $businessInterruption,
+                            'total_sum_insured' => $totalSum
+                        ];
                     }
                 }
+
                 $data['risk_locations'] = json_encode($riskLocations);
             } else {
                 $data['risk_locations'] = null;
@@ -64,7 +75,9 @@ class AdminController extends Controller
                 $data['policy_period_tba'],
                 $data['risk_locations_json'],
                 $data['risk_location'],
-                $data['risk_sum_insured']
+                $data['risk_property_damage'],
+                $data['risk_business_interruption'],
+                $data['risk_total_sum']
             );
 
             Quote::create($data);
@@ -78,6 +91,7 @@ class AdminController extends Controller
     public function quotesList()
     {
         $quotes = Quote::where('is_active', 1)->orderBy('id', 'desc')->get();
+
         return view('quotes.list', compact('quotes'));
     }
 
@@ -106,14 +120,22 @@ class AdminController extends Controller
             $data['policy_period'] = null;
         }
 
-        // Handle Risk Locations as JSON (location + sum insured pairs)
-        if (!empty($data['risk_location']) && !empty($data['risk_sum_insured'])) {
+        // Handle Risk Locations as JSON (location + property damage + business interruption + total)
+        if (!empty($data['risk_location'])) {
             $riskLocations = [];
             foreach ($data['risk_location'] as $index => $location) {
                 $location = trim($location);
-                $sum = isset($data['risk_sum_insured'][$index]) ? trim($data['risk_sum_insured'][$index]) : null;
-                if ($location !== '' && $sum !== null) {
-                    $riskLocations[$location] = is_numeric($sum) ? (float)$sum : $sum;
+                $propertyDamage = isset($data['risk_property_damage'][$index]) ? (float)trim($data['risk_property_damage'][$index]) : 0;
+                $businessInterruption = isset($data['risk_business_interruption'][$index]) ? (float)trim($data['risk_business_interruption'][$index]) : 0;
+                $totalSum = isset($data['risk_total_sum'][$index]) ? (float)trim($data['risk_total_sum'][$index]) : 0;
+
+                if ($location !== '') {
+                    $riskLocations[] = [
+                        'location' => $location,
+                        'property_damage' => $propertyDamage,
+                        'business_interruption' => $businessInterruption,
+                        'total_sum_insured' => $totalSum
+                    ];
                 }
             }
             $data['risk_locations'] = json_encode($riskLocations);
@@ -121,7 +143,7 @@ class AdminController extends Controller
             $data['risk_locations'] = null;
         }
 
-        // Handle reinsurers with percentages
+        // Handle reinsurers with percentages and brokerage
         if (!empty($data['reinsurers_json'])) {
             $data['reinsurers'] = $data['reinsurers_json'];
         } else if (!empty($data['reinsurer_names']) && !empty($data['reinsurer_percentages'])) {
@@ -129,10 +151,15 @@ class AdminController extends Controller
             foreach ($data['reinsurer_names'] as $index => $name) {
                 $name = trim($name);
                 $percentage = isset($data['reinsurer_percentages'][$index]) ? (float)$data['reinsurer_percentages'][$index] : 0;
+                $brokerage = isset($data['reinsurer_brokerages'][$index]) ? (float)$data['reinsurer_brokerages'][$index] : 0;
+                $ceding = isset($data['reinsurer_ceding_commissions'][$index]) ? (float)$data['reinsurer_ceding_commissions'][$index] : 0;
+
                 if ($name !== '') {
                     $reinsurersArray[] = [
                         'name' => $name,
-                        'percentage' => $percentage
+                        'percentage' => $percentage,
+                        'brokerage' => $brokerage,
+                        'ceding_commission' => $ceding
                     ];
                 }
             }
@@ -149,7 +176,6 @@ class AdminController extends Controller
         $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
         $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
         $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
-        $data['is_final_submit'] = $data['is_final_submit'] == 0 ? 0 : 1;
 
         unset(
             $data['policy_start_date'],
@@ -157,9 +183,12 @@ class AdminController extends Controller
             $data['policy_period_tba'],
             $data['risk_locations_json'],
             $data['risk_location'],
-            $data['risk_sum_insured'],
+            $data['risk_property_damage'],
+            $data['risk_business_interruption'],
+            $data['risk_total_sum'],
             $data['reinsurer_names'],
             $data['reinsurer_percentages'],
+            $data['reinsurer_brokerages'],
             $data['reinsurers_json']
         );
 
@@ -191,14 +220,29 @@ class AdminController extends Controller
         return redirect()->route('quotes.show', $id)->with('success', 'Policy wording updated successfully!');
     }
 
-    public function downloadPdf($id)
+    public function downloadPdf(Request $request, $id)
     {
         $quote = \App\Models\Quote::findOrFail($id);
 
-        $pdf = Pdf::loadView('quotes.pdf', compact('quote'));
-        return $pdf->download('quote_' . $id . '.pdf');
-    }
+        $currency = $request->get('currency', 'INR');
+        $exchangeRate = $request->get('exchange_rate', 1);
+        $mode = $request->get('mode', 'download'); // Get mode from query parameter
 
+        if ($currency !== 'INR' && (!$exchangeRate || !is_numeric($exchangeRate) || $exchangeRate <= 0)) {
+            return redirect()->back()->with('error', 'Invalid exchange rate provided.');
+        }
+
+        $exchangeRate = (float) $exchangeRate;
+
+        $pdf = Pdf::loadView('quotes.pdf', compact('quote', 'currency', 'exchangeRate'));
+
+        // If mode is 'view', stream the PDF inline; otherwise download it
+        if ($mode === 'view') {
+            return $pdf->stream('quote_' . $id . '_' . $currency . '.pdf');
+        }
+
+        return $pdf->download('quote_' . $id . '_' . $currency . '.pdf');
+    }
     public function finalSubmitAndDownload($id)
     {
         $quote = Quote::findOrFail($id);
@@ -381,7 +425,6 @@ class AdminController extends Controller
             // 4. Redirect with a success message
             return redirect()->route('note.list', $request->quote_id)
                 ->with('success', 'Debit note created successfully!');
-
         } catch (\Exception $e) {
             // 5. Handle any errors and redirect back with an error message
             return redirect()->back()
@@ -430,5 +473,227 @@ class AdminController extends Controller
 
         // Format: Zoom/RI/CN/2025-26/01 or Zoom/RI/DN/2025-26/01
         return 'Zoom/RI/' . $typePrefix . '/' . $financialYear . '/' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
+    }
+
+    public function placementSlip($id)
+    {
+        $quote = Quote::findOrFail($id);
+
+        $placement_slip = PlacementSlip::where('quote_id', $id)->get();
+
+        return view('quotes.placement_slip', compact('quote', 'placement_slip'));
+    }
+
+    public function createPlacementSlip($id)
+    {
+        $quote = Quote::findOrFail($id);
+        return view('quotes.create_placement_slip', compact('quote'));
+    }
+
+    public function editPlacementSlip($id)
+    {
+        $placementSlip = PlacementSlip::findOrFail($id);
+        return view('quotes.edit_placement_slip', compact('placementSlip'));
+    }
+
+    public function downloadPlacementSlip($id)
+    {
+        $placementSlip = PlacementSlip::findOrFail($id);
+        $quote = Quote::findOrFail($placementSlip->quote_id);
+        // Create a safe filename by replacing slashes with hyphens
+        $filename = 'placement_slip_' . $placementSlip->id . '.pdf';
+
+        // Pass all necessary data to the PDF view
+        $pdf = Pdf::loadView('quotes.placement_slip_pdf', compact('placementSlip', 'quote'));
+
+        return $pdf->setPaper('a4')->download($filename);
+    }
+    public function storePlacementSlip(Request $request)
+    {
+        $request->validate([
+            'quote_id' => 'required|exists:quotes,id',
+            'reinsurer_name' => 'required|string|max:255',
+            'to' => 'required|string|max:255',
+            'policy_wording' => 'required|string',
+            'placement_type' => 'required|in:PPW,PPC',
+        ]);
+
+        $data = $request->all();
+
+        // Handle Policy Period
+        if (!empty($data['policy_start_date']) && !empty($data['policy_end_date'])) {
+            $data['policy_period'] = date('d/m/Y', strtotime($data['policy_start_date'])) . ' - ' . date('d/m/Y', strtotime($data['policy_end_date']));
+        } else {
+            $data['policy_period'] = null;
+        }
+
+        // Handle Risk Locations as JSON
+        if (!empty($data['risk_location'])) {
+            $riskLocations = [];
+            foreach ($data['risk_location'] as $index => $location) {
+                $location = trim($location);
+                $propertyDamage = isset($data['risk_property_damage'][$index]) ? (float)trim($data['risk_property_damage'][$index]) : 0;
+                $businessInterruption = isset($data['risk_business_interruption'][$index]) ? (float)trim($data['risk_business_interruption'][$index]) : 0;
+                $totalSum = isset($data['risk_total_sum'][$index]) ? (float)trim($data['risk_total_sum'][$index]) : 0;
+
+                if ($location !== '') {
+                    $riskLocations[] = [
+                        'location' => $location,
+                        'property_damage' => $propertyDamage,
+                        'business_interruption' => $businessInterruption,
+                        'total_sum_insured' => $totalSum
+                    ];
+                }
+            }
+            $data['risk_locations'] = json_encode($riskLocations);
+        } else {
+            $data['risk_locations'] = null;
+        }
+
+        // Handle arrays as JSON
+        $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
+        $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
+        $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
+
+        // Remove helper/unused fields
+        unset(
+            $data['policy_start_date'],
+            $data['policy_end_date'],
+            $data['policy_period_tba'],
+            $data['risk_locations_json'],
+            $data['risk_location'],
+            $data['risk_property_damage'],
+            $data['risk_business_interruption'],
+            $data['risk_total_sum']
+        );
+
+        PlacementSlip::create($data);
+
+        return redirect()->route('quotes.placement-slip', $request->input('quote_id'))
+            ->with('success', 'Placement slip created successfully!');
+    }
+    public function updatePlacementSlip(Request $request, $id)
+    {
+        $request->validate([
+            'policy_wording' => 'required|string',
+            'placement_type' => 'required|in:PPW,PPC',
+        ]);
+
+        $placementSlip = PlacementSlip::findOrFail($id);
+
+        $data = $request->all();
+
+        // Handle Policy Period
+        if (!empty($data['policy_start_date']) && !empty($data['policy_end_date'])) {
+            $data['policy_period'] = date('d/m/Y', strtotime($data['policy_start_date'])) . ' - ' . date('d/m/Y', strtotime($data['policy_end_date']));
+        } else {
+            $data['policy_period'] = null;
+        }
+
+        // Handle Risk Locations as JSON
+        if (!empty($data['risk_location'])) {
+            $riskLocations = [];
+            foreach ($data['risk_location'] as $index => $location) {
+                $location = trim($location);
+                $propertyDamage = isset($data['risk_property_damage'][$index]) ? (float)trim($data['risk_property_damage'][$index]) : 0;
+                $businessInterruption = isset($data['risk_business_interruption'][$index]) ? (float)trim($data['risk_business_interruption'][$index]) : 0;
+                $totalSum = isset($data['risk_total_sum'][$index]) ? (float)trim($data['risk_total_sum'][$index]) : 0;
+
+                if ($location !== '') {
+                    $riskLocations[] = [
+                        'location' => $location,
+                        'property_damage' => $propertyDamage,
+                        'business_interruption' => $businessInterruption,
+                        'total_sum_insured' => $totalSum
+                    ];
+                }
+            }
+            $data['risk_locations'] = json_encode($riskLocations);
+        } else {
+            $data['risk_locations'] = null;
+        }
+
+        // Handle arrays as JSON
+        $data['limit_of_indemnity'] = isset($data['limit_of_indemnity']) ? json_encode($data['limit_of_indemnity']) : null;
+        $data['additional_covers'] = isset($data['additional_covers']) ? json_encode($data['additional_covers']) : null;
+        $data['deductibles'] = isset($data['deductibles']) ? json_encode($data['deductibles']) : null;
+
+        // Remove helper/unused fields
+        unset(
+            $data['_token'],
+            $data['_method'],
+            $data['policy_start_date'],
+            $data['policy_end_date'],
+            $data['policy_period_tba'],
+            $data['risk_locations_json'],
+            $data['risk_location'],
+            $data['risk_property_damage'],
+            $data['risk_business_interruption'],
+            $data['risk_total_sum']
+        );
+
+        $placementSlip->update($data);
+
+        return redirect()->route('quotes.placement-slip', $placementSlip->quote_id)
+            ->with('success', 'Placement slip updated successfully!');
+    }
+    public function uploadSignedSlip(Request $request, $id)
+    {
+        $request->validate([
+            'signed_slip' => 'required|file|mimes:pdf,jpg,jpeg,png',
+        ]);
+
+        $placementSlip = PlacementSlip::findOrFail($id);
+
+        if ($request->hasFile('signed_slip')) {
+            $file = $request->file('signed_slip');
+            $filename = 'signed_slip_' . $placementSlip->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('signed_slips', $filename, 'public');
+            $placementSlip->signed_slip = $path;
+            $placementSlip->save();
+        }
+
+        return redirect()->back()->with('success', 'Signed slip uploaded successfully!');
+    }
+
+    public function uploadSignedNote(Request $request, $id)
+    {
+        $note = Note::findOrFail($id);
+
+        $request->validate([
+            'signed_note' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB max
+        ]);
+
+        if ($request->hasFile('signed_note')) {
+            // Delete old signed note if exists
+            if ($note->signed_note && Storage::disk('public')->exists($note->signed_note)) {
+                Storage::disk('public')->delete($note->signed_note);
+            }
+
+            $file = $request->file('signed_note');
+            $filename = 'signed_note_' . $note->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('signed_notes', $filename, 'public');
+            $note->signed_note = $path;
+            $note->save();
+        }
+
+        return redirect()->back()->with('success', 'Signed note uploaded successfully!');
+    }
+
+    public function downloadSignedNote($id)
+    {
+        $note = Note::findOrFail($id);
+
+        if (!$note->signed_note || !Storage::disk('public')->exists($note->signed_note)) {
+            return redirect()->back()->with('error', 'Signed note not found!');
+        }
+
+        $filePath = Storage::disk('public')->path($note->signed_note);
+
+        // Sanitize the invoice number by removing invalid characters
+        $sanitizedInvoiceNumber = preg_replace('/[\/\\\\:*?"<>|]/', '_', $note->invoice_number);
+        $filename = 'signed_note_' . $sanitizedInvoiceNumber . '.' . pathinfo($note->signed_note, PATHINFO_EXTENSION);
+
+        return response()->download($filePath, $filename);
     }
 }

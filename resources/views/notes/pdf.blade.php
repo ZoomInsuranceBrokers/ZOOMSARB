@@ -338,12 +338,14 @@
             </tbody>
         </table>
         <div class="amount-words italic">
-            (Total Amount — Rupees
+            (Total Amount — {{ $quote->currency_type ?? 'INR' }}
             {{ ucwords(\NumberFormatter::create('en_IN', \NumberFormatter::SPELLOUT)->format(abs($grandTotal))) }}
             only)
         </div>
         <div class="amount-numbers">
-            Total Amount Due: INR {{ number_format($grandTotal, 2) }}
+            Total Amount Due: 
+            {{ $quote->currency_type ?? 'INR' }}
+            {{ number_format($grandTotal, 2) }}
         </div>
         <div class="signature-section">
             <span class="bold">For: Zoom Insurance Brokers Pvt. Ltd.</span>

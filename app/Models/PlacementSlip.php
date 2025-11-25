@@ -5,18 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Quote extends Model
+class PlacementSlip extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
+        'quote_id',
+        'reinsurer_name',
+        'to',
+        'policy_wording',
         'insured_name',
-        'user_id',
         'insured_address',
         'policy_name',
         'policy_period',
@@ -39,32 +37,19 @@ class Quote extends Model
         'remark1',
         'remark2',
         'remark3',
-        'is_active',
-        'is_submit',
-        'is_edit',
-        'is_final_submit',
-        'bussiness_lost',
-        'policy_wording',
-        'cedant',
-        'reinsurer',
-        'placemnet_slip',
-        'reinsurer_country',
-        'brokerage_percentage'
+        'placement_type',
+        'ppw_details',
+        'ppc_details',
+        'signed_slip',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
     protected $casts = [
         'risk_locations' => 'array',
         'limit_of_indemnity' => 'array',
-        'property_damage' => 'decimal:2',
-        'business_interruption' => 'decimal:2',
-        'total_sum_insured' => 'decimal:2',
-        'is_active' => 'boolean',
-        'is_submit' => 'boolean',
-        'is_edit' => 'boolean',
     ];
+
+    public function quote()
+    {
+        return $this->belongsTo(Quote::class);
+    }
 }

@@ -15,9 +15,11 @@ class CreateQuotesTable extends Migration
             $table->string('insured_address')->nullable();
             $table->string('policy_name')->nullable();
             $table->string('policy_period')->nullable();
+            $table->string('currency_type')->nullable();
             $table->string('occupancy')->nullable();
             $table->string('jurisdiction')->nullable();
             $table->json('risk_locations')->nullable();
+            $table->boolean('risk_location_as_per_annexure')->default(0);
             $table->decimal('property_damage', 20, 2)->nullable();
             $table->decimal('business_interruption', 20, 2)->nullable();
             $table->decimal('total_sum_insured', 20, 2)->nullable();
@@ -36,6 +38,7 @@ class CreateQuotesTable extends Migration
             $table->boolean('is_submit')->default(0);
             $table->boolean('is_edit')->default(1);
             $table->boolean('is_final_submit')->default(0);
+            $table->text('bussiness_lost')->nullable();
             $table->longText('policy_wording')->nullable();
             $table->string('cedant')->nullable();
             $table->string('reinsurer')->nullable();
